@@ -111,6 +111,8 @@ CameraMeta Camera::getCameraMeta() {
     cameraMeta.fov = Vec2f(fov.x, fov.y);
     cameraMeta.apertureRadius = apertureRadius;
     cameraMeta.focalDistance = focalDistance;
+
+    return cameraMeta;
 }
 
 float mod(float x, float y) { // Does this account for -y ???

@@ -56,13 +56,12 @@ __device__ Vec3f renderKernel(curandState *randState, cudaTextureObject_t hdrTex
             int hdrTextureIdx = u2 + v2 * renderMeta->hdrWidth;
 
             float4 hdrColor = tex1Dfetch<float4>(hdrTexture, hdrTextureIdx);  // fetch from texture
-            Vec3f hdrColor3 = Vec3f(hdrColor.x, hdrColor.y, hdrColor.z);
 
+            Vec3f hdrColor3 = Vec3f(hdrColor.x, hdrColor.y, hdrColor.z);
 
             emit = hdrColor3 * 2.0f;
             accumulatedColor += (mask * emit);
-//            return accumulatedColor;
-            return Vec3f(1.0, 1.0, 0.0);
+            return accumulatedColor;
         }
     }
 }
@@ -85,16 +84,13 @@ __global__ void pathTracingKernel(Vec3f *outputBuffer, Vec3f *accumulatedBuffer,
     curandState randState; // state of the random number generator, to prevent repetition
     curand_init(renderMeta->hashedFrame + threadId, 0, 0, &randState);
 
-
     Vec3f finalColor; // final pixel color
     finalColor = Vec3f(0.0f, 0.0f, 0.0f); // reset color to zero for every pixel
     Vec3f cameraPosition = Vec3f(cameraMeta->position.x, cameraMeta->position.y, cameraMeta->position.z);
 
-
     int i = (height - y - 1) * width + x; // pixel index in buffer
     int pixelX = x; // pixel x-coordinate on screen
     int pixelY = height - y - 1; // pixel y-coordinate on screen
-
 
     Vec3f camDir = Vec3f(0, -0.042612f, -1);
     camDir.normalize();

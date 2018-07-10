@@ -38,7 +38,10 @@ void HDRImage::createTexture() {
     resDesc.resType = cudaResourceTypeLinear;
     resDesc.res.linear.devPtr = hdrEnv;
     resDesc.res.linear.desc.f = cudaChannelFormatKindFloat;
-    resDesc.res.linear.desc.x = 32; // bits per channel
+    resDesc.res.linear.desc.x = 32; // r-channel bits
+    resDesc.res.linear.desc.y = 32; // g-channel bits
+    resDesc.res.linear.desc.z = 32; // b-channel bits
+    resDesc.res.linear.desc.w = 32; // a-channel bits
     resDesc.res.linear.sizeInBytes = width * height * sizeof(float4);
 
     cudaTextureDesc texDesc{};
