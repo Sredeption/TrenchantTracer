@@ -189,16 +189,16 @@ __global__ void pathTracingKernel(Vec3f *outputBuffer, Vec3f *accumulatedBuffer,
 
 void Renderer::render() {
     dim3 block(16, 16, 1);
-    dim3 grid(Config::WIDTH / block.x, Config::HEIGHT / block.y, 1);
+    dim3 grid(config->width / block.x, config->height / block.y, 1);
     // Configure grid and block sizes:
     int threadsPerBlock = 256;
     // Compute the number of blocks required, performing a ceiling operation to make sure there are enough:
-    int fullBlocksPerGrid = ((Config::WIDTH * Config::HEIGHT) + threadsPerBlock - 1) / threadsPerBlock;
+    int fullBlocksPerGrid = ((config->width * config->height) + threadsPerBlock - 1) / threadsPerBlock;
 
     // copy the CPU rendering parameter to a GPU rendering parameter
     cudaMemcpy(renderMetaDevice, &renderMeta, sizeof(RenderMeta), cudaMemcpyHostToDevice);
 
 //    pathTracingKernel(outputBuffer, accumulatedBuffer, hdrEnv->hdrTexture, renderMetaDevice, cameraMetaDevice);
-    pathTracingKernel<<<grid, block>>>(outputBuffer, accumulatedBuffer, hdrEnv->hdrTexture, renderMetaDevice, cameraMetaDevice);
+    pathTracingKernel<<<grid, block>>>(outputBuffer, accumulatedBuffer, scene->getHDREnv()->hdrTexture, renderMetaDevice, cameraMetaDevice);
 }
 

@@ -8,12 +8,12 @@
 #include <cuda_gl_interop.h>
 #include <cuda_runtime.h>
 
-#include <Config.h>
+#include <core/Scene.h>
 #include <core/Camera.h>
 #include <math/LinearMath.h>
 #include <control/Controller.h>
+#include <util/Config.h>
 #include <util/WangHash.h>
-#include <core/HDRImage.h>
 
 struct RenderMeta {
     int frameNumber;
@@ -37,7 +37,8 @@ private:
     RenderMeta renderMeta; //host memory
     RenderMeta *renderMetaDevice; //device memory
 
-    HDRImage *hdrEnv;
+    Config *config;
+    Scene *scene;
 
     void render();
 
@@ -45,11 +46,11 @@ public:
     const static float PI;
     const static float TWO_PI;
 
-    Renderer(HDRImage *hdrEnv);
+    Renderer(Config *config, Scene *scene);
 
     ~Renderer();
 
-    static void init(HDRImage *hdrEnv);
+    static void init(Config *config, Scene *scene);
 
     static Renderer *getInstance();
 

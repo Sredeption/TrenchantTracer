@@ -2,14 +2,16 @@
 #include <GL/glut.h>
 
 #include <iostream>
-
 #include <cuda_gl_interop.h>
 
-#include <Config.h>
 #include <core/Camera.h>
 #include <core/Renderer.h>
 #include <control/Controller.h>
 #include <loader/HDRLoader.h>
+#include <loader/OBJLoader.h>
+#include <util/Config.h>
+#include <bvh/BVH.h>
+#include <loader/SceneLoader.h>
 
 void Timer(int) {
     glutPostRedisplay();
@@ -23,19 +25,28 @@ void display() {
 }
 
 int main(int argc, char **argv) {
-    auto *camera = new Camera(Config::WIDTH, Config::HEIGHT);
+    // set up config
+    std::string configFileName = "config/dev.json";
+    auto config = new Config(configFileName);
+
+    // init camera
+    auto *camera = new Camera(config->width, config->height);
     Controller::init(camera);
 
+    // load assets
+    SceneLoader sceneLoader(config);
+    Scene *scene = sceneLoader.load();
 
-    HDRLoader hdrLoader;
-    HDRImage *hdrEnv = hdrLoader.load(Config::HDRFileName);
+    SAHHelper sahHelper;
+    BVH::BuildParams defaultParams;
+    auto bvh = new BVH(scene, sahHelper, defaultParams);
 
     // initialize GLUT
     glutInit(&argc, argv);
 
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB); // specify the display mode to be RGB and single buffering
     glutInitWindowPosition(100, 100); // specify the initial window position
-    glutInitWindowSize(Config::WIDTH, Config::HEIGHT); // specify the initial window size
+    glutInitWindowSize(config->width, config->height); // specify the initial window size
     glutCreateWindow("Trenchant Tracer, CUDA path tracer using SplitBVH"); // create the window and set title
 
     cudaGLSetGLDevice(0);
@@ -44,7 +55,7 @@ int main(int argc, char **argv) {
     // initialize OpenGL:
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glMatrixMode(GL_PROJECTION);
-    gluOrtho2D(0.0, Config::WIDTH, 0.0, Config::HEIGHT);
+    gluOrtho2D(0.0, config->width, 0.0, config->height);
     fprintf(stderr, "OpenGL initialized \n");
 
     // register callback function to display graphics
@@ -59,9 +70,9 @@ int main(int argc, char **argv) {
     glewInit();
     if (!glewIsSupported("GL_VERSION_2_0 "))
         throw std::runtime_error("ERROR: Support for necessary OpenGL extensions missing.");
-    fprintf(stderr, "glew initialized  \n");
+    fprintf(stderr, "GLEW initialized  \n");
 
-    Renderer::init(hdrEnv);
+    Renderer::init(config, scene);
     fprintf(stderr, "Renderer initialized \n");
 
     Timer(0);
@@ -70,8 +81,9 @@ int main(int argc, char **argv) {
     printf("Rendering started...\n");
     glutMainLoop();
 
+    delete config;
     delete camera;
     Controller::clear();
     Renderer::clear();
-    delete hdrEnv;
+    delete scene;
 }

@@ -7,8 +7,18 @@
 #define FW_ASSERT(X) ((void)0)
 // FW_ASSERT(X) ((X) ? ((void)0) : FW::fail("Assertion failed!\n%s:%d\n%s", __FILE__, __LINE__, #X)) in DEBUG
 
+#define FW_F32_MAX          (3.402823466e+38f)
+
+typedef unsigned char U8;
+typedef unsigned short U16;
 typedef unsigned int U32;
+typedef unsigned long U64;
+typedef signed char S8;
+typedef signed short S16;
+typedef signed int S32;
+typedef signed long S64;
 typedef float F32;
+typedef double F64;
 
 struct Vec2f {
     /// float x, y;
@@ -53,6 +63,9 @@ inline __host__ __device__ float max1f(const float &a, const float &b) { return 
 
 inline __host__ __device__ float min1f(const float &a, const float &b) { return (a > b) ? b : a; }
 
+inline __host__ __device__ float min1f3(const float &a, const float &b, const float &c) {
+    return min1f(min1f(a, b), c);
+}
 
 struct Vec3f {
 
@@ -151,6 +164,10 @@ struct Vec3i {
     __host__ __device__ Vec3i(const Vec3i &v) : x(v.x), y(v.y), z(v.z) {}
 
     __host__ __device__ Vec3i(const Vec3f &vf) : x(vf.x), y(vf.y), z(vf.z) {}
+
+    inline __host__ __device__ Vec3f operator+(float a) const { return Vec3f(x + a, y + a, z + a); }
+
+    inline __host__ __device__ Vec3i operator+(const Vec3i &v) const { return Vec3i(x + v.x, y + v.y, z + v.z); }
 
     inline __host__ __device__ bool operator==(const Vec3i &v) { return x == v.x && y == v.y && z == v.z; }
 };
@@ -559,7 +576,7 @@ inline float detImpl(const Mat3f &v) {
            v(2, 0) * v(0, 1) * v(1, 2) - v(2, 0) * v(0, 2) * v(1, 1);
 }
 
-float Mat3f::det(void) const {
+float Mat3f::det() const {
     return detImpl(*this);
 }
 
@@ -618,6 +635,18 @@ Mat4f Mat4f::inverted4x4(void) {
         inverse.get(i) = inv[i] * det;
 
     return inverse;
+}
+
+inline int max1i(const int &a, const int &b) { return (a < b) ? b : a; }
+
+inline int min1i(const int &a, const int &b) { return (a > b) ? b : a; }
+
+inline int clamp1i(const int v, const int lo, const int hi) { return v < lo ? lo : v > hi ? hi : v; }
+
+inline float clamp1f(const float v, const float lo, const float hi) { return v < lo ? lo : v > hi ? hi : v; }
+
+inline Vec3i clamp3i(const Vec3i &v, const Vec3i &lo, const Vec3i &hi) {
+    return Vec3i(clamp1i(v.x, lo.x, hi.x), clamp1i(v.y, lo.y, hi.y), clamp1i(v.z, lo.z, hi.z));
 }
 
 #endif //TRENCHANTTRACER_LINEARMATH_H

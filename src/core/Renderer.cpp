@@ -5,13 +5,14 @@ Renderer *Renderer::instance = nullptr;
 const float Renderer::PI = 3.14156265f;
 const float Renderer::TWO_PI = 6.2831853071795864769252867665590057683943f;
 
-Renderer::Renderer(HDRImage *hdrEnv) {
+Renderer::Renderer(Config *config, Scene *scene) {
 
+    this->config = config;
     // store rendering resources
-    this->hdrEnv = hdrEnv;
+    this->scene = scene;
 
     // allocate GPU memory for accumulation buffer
-    cudaMalloc(&accumulatedBuffer, Config::WIDTH * Config::HEIGHT * sizeof(Vec3f));
+    cudaMalloc(&accumulatedBuffer, config->width * config->height * sizeof(Vec3f));
 
     // allocate GPU memory for interactive camera
     cudaMalloc(&cameraMetaDevice, sizeof(CameraMeta));
@@ -20,11 +21,11 @@ Renderer::Renderer(HDRImage *hdrEnv) {
     cudaMalloc(&renderMetaDevice, sizeof(RenderMeta));
 
     // initialize HDR meta data
-    renderMeta.hdrWidth = hdrEnv->width;
-    renderMeta.hdrHeight = hdrEnv->height;
+    renderMeta.hdrWidth = scene->getHDREnv()->width;
+    renderMeta.hdrHeight = scene->getHDREnv()->height;
 
     // initialize constants
-    renderMeta.SAMPLES = Config::SAMPLES;
+    renderMeta.SAMPLES = config->samples;
     renderMeta.PI = Renderer::PI;
     renderMeta.TWO_PI = Renderer::TWO_PI;
 
@@ -33,7 +34,7 @@ Renderer::Renderer(HDRImage *hdrEnv) {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
     //Initialize VBO
-    unsigned int size = Config::WIDTH * Config::HEIGHT * sizeof(Vec3f);
+    unsigned int size = config->width * config->height * sizeof(Vec3f);
     glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -48,8 +49,8 @@ Renderer::~Renderer() {
     cudaFree(renderMetaDevice);
 }
 
-void Renderer::init(HDRImage *hdrEnv) {
-    Renderer::instance = new Renderer(hdrEnv);
+void Renderer::init(Config *config, Scene *scene) {
+    Renderer::instance = new Renderer(config, scene);
 }
 
 void Renderer::clear() {
@@ -62,7 +63,7 @@ Renderer *Renderer::getInstance() {
 
 void Renderer::display(Controller *controller) {
     if (controller->bufferReset) {
-        cudaMemset(accumulatedBuffer, 1, Config::WIDTH * Config::HEIGHT * sizeof(Vec3f));
+        cudaMemset(accumulatedBuffer, 1, config->width * config->height * sizeof(Vec3f));
         renderMeta.frameNumber = 0;
     }
 
@@ -96,7 +97,7 @@ void Renderer::display(Controller *controller) {
 
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_COLOR_ARRAY);
-    glDrawArrays(GL_POINTS, 0, Config::WIDTH * Config::HEIGHT);
+    glDrawArrays(GL_POINTS, 0, config->width * config->height);
     glDisableClientState(GL_VERTEX_ARRAY);
 
     glutSwapBuffers();

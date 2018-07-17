@@ -14,6 +14,7 @@ include_directories(${GLUT_INCLUDE_DIR})
 include_directories(${OPENGL_INCLUDE_DIR})
 
 include_directories(include)
+include_directories(lib/include)
 
 set(CUDA_SRC
         src/core/RenderKernel.cu)
@@ -32,7 +33,7 @@ add_executable(TrenchantTracer
         include/control/Keyboard.h
         src/control/Controller.cpp
         include/control/Controller.h
-        include/Config.h
+        include/util/Config.h
         src/loader/HDRLoader.cpp
         include/loader/HDRLoader.h
         src/core/HDRImage.cpp
@@ -41,7 +42,21 @@ add_executable(TrenchantTracer
         include/core/Renderer.h
         src/util/WangHash.cpp
         include/util/WangHash.h
-        ${CUDA_O})
+        ${CUDA_O}
+        src/loader/OBJLoader.cpp
+        include/loader/OBJLoader.h
+        src/core/Object.cpp
+        include/core/Object.h
+        src/geometry/Mesh.cpp
+        include/geometry/Mesh.h
+        src/material/Material.cpp
+        include/material/Material.h
+        src/core/Group.cpp
+        include/core/Group.h
+        src/geometry/Vertices.cpp
+        include/geometry/Vertices.h
+        src/core/Scene.cpp
+        include/core/Scene.h include/util/Array.h src/util/Config.cpp src/bvh/BVH.cpp include/bvh/BVH.h src/bvh/SAHHelper.cpp include/bvh/SAHHelper.h src/bvh/AABB.cpp include/bvh/AABB.h src/bvh/BVHNode.cpp include/bvh/BVHNode.h src/bvh/InnerNode.cpp include/bvh/InnerNode.h src/bvh/LeafNode.cpp include/bvh/LeafNode.h src/util/Sort.cpp include/util/Sort.h src/loader/SceneLoader.cpp include/loader/SceneLoader.h)
 
 target_link_libraries(TrenchantTracer
         ${CUDA_LIBRARIES}
