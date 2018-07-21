@@ -39,7 +39,8 @@ int main(int argc, char **argv) {
 
     SAHHelper sahHelper;
     BVH::BuildParams defaultParams;
-    auto bvh = new BVH(scene, sahHelper, defaultParams);
+    auto bvh = new BVH(scene, sahHelper);
+    BVHHolder *bvhHolder = bvh->createHolder();
 
     // initialize GLUT
     glutInit(&argc, argv);
@@ -86,4 +87,6 @@ int main(int argc, char **argv) {
     Controller::clear();
     Renderer::clear();
     delete scene;
+    delete bvhHolder;
+    delete bvh;
 }

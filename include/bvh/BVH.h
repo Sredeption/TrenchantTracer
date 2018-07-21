@@ -6,9 +6,12 @@
 #include <bvh/BVHNode.h>
 #include <bvh/InnerNode.h>
 #include <bvh/LeafNode.h>
+#include <bvh/BVHHolder.h>
 #include <math/LinearMath.h>
 #include <util/Array.h>
 #include <util/Sort.h>
+
+class BVHHolder;
 
 //Bounding Volume Hierarchies
 class BVH {
@@ -89,21 +92,21 @@ private:
     Scene *scene;
     SAHHelper sahHelper;
     BVHNode *root;
-    Array<S32> m_triIndices;
+    Array<S32> triIndices;
+    Stats *stats;
 
-    BuildParams params;
-    Array<Reference> m_refStack;
-    F32 m_minOverlap;
-    Array<AABB> m_rightBounds;
-    S32 m_sortDim;
-    SpatialBin m_bins[3][NumSpatialBins];
+    Array<Reference> refStack;
+    F32 minOverlap;
+    Array<AABB> rightBounds;
+    S32 sortDim;
+    SpatialBin bins[3][NumSpatialBins];
 
-    S32 m_numDuplicates;
+    S32 numDuplicates;
 
 public:
-    BVH(Scene *scene, const SAHHelper &sahHelper, const BuildParams &params);
+    BVH(Scene *scene, const SAHHelper &sahHelper, float splitAlpha = 1.0e-5f);
 
-    ~BVH() { if (root) root->deleteSubtree(); }
+    ~BVH();
 
     Scene *getScene() const { return scene; }
 
@@ -111,12 +114,15 @@ public:
 
     BVHNode *getRoot() const { return root; }
 
-    Array<S32> &getTriIndices() { return m_triIndices; }
+    Array<S32> &getTriIndices() { return triIndices; }
 
-    const Array<S32> &getTriIndices() const { return m_triIndices; }
+    const Array<S32> &getTriIndices() const { return triIndices; }
+
+    BVHHolder *createHolder();
 
 private:
-    BVHNode *buildNode(const NodeSpec &spec, int level, F32 progressStart, F32 progressEnd);
+    BVHNode *buildNode(const NodeSpec &spec, int level);
+
 
     BVHNode *createLeaf(const NodeSpec &spec);
 

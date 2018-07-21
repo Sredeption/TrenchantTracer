@@ -1,13 +1,12 @@
 #include <bvh/BVH.h>
 
-BVH::BVH(Scene *scene, const SAHHelper &sahHelper, const BVH::BuildParams &params) {
+BVH::BVH(Scene *scene, const SAHHelper &sahHelper, float splitAlpha) {
     FW_ASSERT(scene);
     this->scene = scene;
     this->sahHelper = sahHelper;
-    this->params = params;
 
-    if (params.enablePrints)
-        printf("BVH builder: %d tris, %d vertices\n", scene->getNumTriangles(), scene->getNumVertices());
+    printf("BVH builder: %d tris, %d vertices, split: %f\n",
+           scene->getNumTriangles(), scene->getNumVertices(), splitAlpha);
 
     //  builds the actual BVH
 
@@ -19,55 +18,56 @@ BVH::BVH(Scene *scene, const SAHHelper &sahHelper, const BVH::BuildParams &param
 
     NodeSpec rootSpec;
     rootSpec.numRef = scene->getNumTriangles();  // number of triangles/references in entire scene (root)
-    m_refStack.resize(rootSpec.numRef);
+    refStack.resize(rootSpec.numRef);
 
     // calculate the bounds of the rootnode by merging the AABBs of all the references
     for (int i = 0; i < rootSpec.numRef; i++) {
         // assign triangle to the array of references
-        m_refStack[i].triIdx = i;
+        refStack[i].triIdx = i;
         // grow the bounds of each reference AABB in all 3 dimensions by including the vertex
         for (int j : tris[i]._v)
-            m_refStack[i].bounds.grow(verts[j]);
-        rootSpec.bounds.grow(m_refStack[i].bounds);
+            refStack[i].bounds.grow(verts[j]);
+        rootSpec.bounds.grow(refStack[i].bounds);
 
     }
 
     // Initialize rest of the members.
-    m_minOverlap = rootSpec.bounds.area() * params.splitAlpha;
+    minOverlap = rootSpec.bounds.area() * splitAlpha;
     // split alpha (maximum allowable overlap) relative to size of rootNode
-    m_rightBounds.reset(max1i(rootSpec.numRef, (int) NumSpatialBins) - 1);
-    m_numDuplicates = 0;
+    rightBounds.reset(max1i(rootSpec.numRef, (int) NumSpatialBins) - 1);
+    numDuplicates = 0;
 
     // Build recursively.
-    root = buildNode(rootSpec, 0, 0.0f, 1.0f);
-    m_triIndices.compact();
+    root = buildNode(rootSpec, 0);
+    triIndices.compact();
 
     // Done.
-    if (params.enablePrints)
-        printf("BVH Builder: progress %.0f%%, duplicates %.0f%%\n",
-               100.0f, (F32) m_numDuplicates / (F32) scene->getNumTriangles() * 100.0f);
+    printf("BVH Builder: progress %.0f%%, duplicates %.0f%%\n",
+           100.0f, (F32) numDuplicates / (F32) scene->getNumTriangles() * 100.0f);
 
-    if (params.enablePrints)
-        printf("BVH Scene bounds: (%.1f,%.1f,%.1f) - (%.1f,%.1f,%.1f)\n", root->bounding.min().x,
-               root->bounding.min().y, root->bounding.min().z,
-               root->bounding.max().x, root->bounding.max().y, root->bounding.max().z);
+    printf("BVH Scene bounds: (%.1f,%.1f,%.1f) - (%.1f,%.1f,%.1f)\n", root->bounding.min().x,
+           root->bounding.min().y, root->bounding.min().z,
+           root->bounding.max().x, root->bounding.max().y, root->bounding.max().z);
 
     float sah = 0.f;
     root->computeSubtreeProbabilities(sahHelper, 1.f, sah);
-    if (params.enablePrints)
-        printf("top-down sah: %.2f\n", sah);
+    printf("top-down sah: %.2f\n", sah);
 
-    if (params.stats) {
-        params.stats->SAHCost = sah;
-        params.stats->branchingFactor = 2;
-        params.stats->numLeafNodes = root->getSubtreeSize(BVHNode::LEAF_COUNT);
-        params.stats->numInnerNodes = root->getSubtreeSize(BVHNode::INNER_COUNT);
-        params.stats->numTris = root->getSubtreeSize(BVHNode::TRIANGLE_COUNT);
-        params.stats->numChildNodes = root->getSubtreeSize(BVHNode::CHILD_NODE_COUNT);
-    }
+    this->stats = new Stats();
+    this->stats->SAHCost = sah;
+    this->stats->branchingFactor = 2;
+    this->stats->numLeafNodes = root->getSubtreeSize(BVHNode::LEAF_COUNT);
+    this->stats->numInnerNodes = root->getSubtreeSize(BVHNode::INNER_COUNT);
+    this->stats->numTris = root->getSubtreeSize(BVHNode::TRIANGLE_COUNT);
+    this->stats->numChildNodes = root->getSubtreeSize(BVHNode::CHILD_NODE_COUNT);
 }
 
-BVHNode *BVH::buildNode(const BVH::NodeSpec &spec, int level, F32 progressStart, F32 progressEnd) {
+BVH::~BVH() {
+    if (root) root->deleteSubtree();
+    delete this->stats;
+}
+
+BVHNode *BVH::buildNode(const BVH::NodeSpec &spec, int level) {
     if (spec.numRef <= sahHelper.getMinLeafSize() || level >= MaxDepth) {
         return createLeaf(spec);
     }
@@ -82,7 +82,7 @@ BVHNode *BVH::buildNode(const BVH::NodeSpec &spec, int level, F32 progressStart,
     if (level < MaxSpatialDepth) {
         AABB overlap = object.leftBounds;
         overlap.intersect(object.rightBounds);
-        if (overlap.area() >= m_minOverlap)
+        if (overlap.area() >= minOverlap)
             spatial = findSpatialSplit(spec, nodeSAH);
     }
 
@@ -104,18 +104,17 @@ BVHNode *BVH::buildNode(const BVH::NodeSpec &spec, int level, F32 progressStart,
     }
 
     // Create inner node.
-    m_numDuplicates += left.numRef + right.numRef - spec.numRef;
-    F32 progressMid = lerp(progressStart, progressEnd, (F32) right.numRef / (F32) (left.numRef + right.numRef));
-    BVHNode *rightNode = buildNode(right, level + 1, progressStart, progressMid);
-    BVHNode *leftNode = buildNode(left, level + 1, progressMid, progressEnd);
+    numDuplicates += left.numRef + right.numRef - spec.numRef;
+    BVHNode *rightNode = buildNode(right, level + 1);
+    BVHNode *leftNode = buildNode(left, level + 1);
     return new InnerNode(spec.bounds, leftNode, rightNode);
 }
 
 BVHNode *BVH::createLeaf(const NodeSpec &spec) {
-    Array<S32> &tris = m_triIndices;
+    Array<S32> &tris = triIndices;
 
     for (int i = 0; i < spec.numRef; i++)
-        tris.add(m_refStack.removeLast().triIdx); // take a triangle from the stack and add it to tris array
+        tris.add(refStack.removeLast().triIdx); // take a triangle from the stack and add it to tris array
 
     return new LeafNode(spec.bounds, tris.getSize() - spec.numRef, tris.getSize());
 }
@@ -123,17 +122,17 @@ BVHNode *BVH::createLeaf(const NodeSpec &spec) {
 BVH::ObjectSplit BVH::findObjectSplit(const NodeSpec &spec, F32 nodeSAH) {
 
     ObjectSplit split;
-    const Reference *refPtr = m_refStack.getPtr(m_refStack.getSize() - spec.numRef);
+    const Reference *refPtr = refStack.getPtr(refStack.getSize() - spec.numRef);
 
     // Sort along each dimension.
-    for (m_sortDim = 0; m_sortDim < 3; m_sortDim++) {
-        sort(m_refStack.getSize() - spec.numRef, m_refStack.getSize(), this, sortCompare, sortSwap);
+    for (sortDim = 0; sortDim < 3; sortDim++) {
+        sort(refStack.getSize() - spec.numRef, refStack.getSize(), this, sortCompare, sortSwap);
 
         // Sweep right to left and determine bounds.
-        AABB rightBounds;
+        AABB rightBound;
         for (int i = spec.numRef - 1; i > 0; i--) {
-            rightBounds.grow(refPtr[i].bounds);
-            m_rightBounds[i - 1] = rightBounds;
+            rightBound.grow(refPtr[i].bounds);
+            rightBounds[i - 1] = rightBound;
         }
 
         // Sweep left to right and select lowest SAH.
@@ -141,13 +140,13 @@ BVH::ObjectSplit BVH::findObjectSplit(const NodeSpec &spec, F32 nodeSAH) {
         for (int i = 1; i < spec.numRef; i++) {
             leftBounds.grow(refPtr[i - 1].bounds);
             F32 sah = nodeSAH + leftBounds.area() * sahHelper.getTriangleCost(i) +
-                      m_rightBounds[i - 1].area() * sahHelper.getTriangleCost(spec.numRef - i);
+                      rightBounds[i - 1].area() * sahHelper.getTriangleCost(spec.numRef - i);
             if (sah < split.sah) {
                 split.sah = sah;
-                split.sortDim = m_sortDim;
+                split.sortDim = sortDim;
                 split.numLeft = i;
                 split.leftBounds = leftBounds;
-                split.rightBounds = m_rightBounds[i - 1];
+                split.rightBounds = rightBounds[i - 1];
             }
         }
     }
@@ -155,8 +154,8 @@ BVH::ObjectSplit BVH::findObjectSplit(const NodeSpec &spec, F32 nodeSAH) {
 }
 
 void BVH::performObjectSplit(NodeSpec &left, NodeSpec &right, const NodeSpec &spec, const ObjectSplit &split) {
-    m_sortDim = split.sortDim;
-    sort(m_refStack.getSize() - spec.numRef, m_refStack.getSize(), this, sortCompare, sortSwap);
+    sortDim = split.sortDim;
+    sort(refStack.getSize() - spec.numRef, refStack.getSize(), this, sortCompare, sortSwap);
 
     left.numRef = split.numLeft;
     left.bounds = split.leftBounds;
@@ -170,7 +169,7 @@ BVH::SpatialSplit BVH::findSpatialSplit(const BVH::NodeSpec &spec, F32 nodeSAH) 
     Vec3f binSize = (spec.bounds.max() - origin) * (1.0f / (F32) NumSpatialBins);
     Vec3f invBinSize = Vec3f(1.0f / binSize.x, 1.0f / binSize.y, 1.0f / binSize.z);
 
-    for (auto &m_bin : m_bins) {
+    for (auto &m_bin : bins) {
         for (auto &bin : m_bin) {
             bin.bounds = AABB();
             bin.enter = 0;
@@ -179,8 +178,8 @@ BVH::SpatialSplit BVH::findSpatialSplit(const BVH::NodeSpec &spec, F32 nodeSAH) 
     }
 
     // Chop references into bins.
-    for (int refIdx = m_refStack.getSize() - spec.numRef; refIdx < m_refStack.getSize(); refIdx++) {
-        const Reference &ref = m_refStack[refIdx];
+    for (int refIdx = refStack.getSize() - spec.numRef; refIdx < refStack.getSize(); refIdx++) {
+        const Reference &ref = refStack[refIdx];
         Vec3i firstBin = clamp3i(Vec3i((ref.bounds.min() - origin) * invBinSize), Vec3i(0, 0, 0),
                                  Vec3i(NumSpatialBins - 1, NumSpatialBins - 1, NumSpatialBins - 1));
         Vec3i lastBin = clamp3i(Vec3i((ref.bounds.max() - origin) * invBinSize), firstBin,
@@ -191,12 +190,12 @@ BVH::SpatialSplit BVH::findSpatialSplit(const BVH::NodeSpec &spec, F32 nodeSAH) 
             for (int i = firstBin._v[dim]; i < lastBin._v[dim]; i++) {
                 Reference leftRef, rightRef;
                 splitReference(leftRef, rightRef, currRef, dim, origin._v[dim] + binSize._v[dim] * (F32) (i + 1));
-                m_bins[dim][i].bounds.grow(leftRef.bounds);
+                bins[dim][i].bounds.grow(leftRef.bounds);
                 currRef = rightRef;
             }
-            m_bins[dim][lastBin._v[dim]].bounds.grow(currRef.bounds);
-            m_bins[dim][firstBin._v[dim]].enter++;
-            m_bins[dim][lastBin._v[dim]].exit++;
+            bins[dim][lastBin._v[dim]].bounds.grow(currRef.bounds);
+            bins[dim][firstBin._v[dim]].enter++;
+            bins[dim][lastBin._v[dim]].exit++;
         }
     }
 
@@ -204,10 +203,10 @@ BVH::SpatialSplit BVH::findSpatialSplit(const BVH::NodeSpec &spec, F32 nodeSAH) 
     SpatialSplit split;
     for (int dim = 0; dim < 3; dim++) {
         // Sweep right to left and determine bounds.
-        AABB rightBounds;
+        AABB rightBound;
         for (int i = NumSpatialBins - 1; i > 0; i--) {
-            rightBounds.grow(m_bins[dim][i].bounds);
-            m_rightBounds[i - 1] = rightBounds;
+            rightBound.grow(bins[dim][i].bounds);
+            rightBounds[i - 1] = rightBound;
         }
         // Sweep left to right and select lowest SAH.
         AABB leftBounds;
@@ -215,12 +214,12 @@ BVH::SpatialSplit BVH::findSpatialSplit(const BVH::NodeSpec &spec, F32 nodeSAH) 
         int rightNum = spec.numRef;
 
         for (int i = 1; i < NumSpatialBins; i++) {
-            leftBounds.grow(m_bins[dim][i - 1].bounds);
-            leftNum += m_bins[dim][i - 1].enter;
-            rightNum -= m_bins[dim][i - 1].exit;
+            leftBounds.grow(bins[dim][i - 1].bounds);
+            leftNum += bins[dim][i - 1].enter;
+            rightNum -= bins[dim][i - 1].exit;
 
             F32 sah = nodeSAH + leftBounds.area() * sahHelper.getTriangleCost(leftNum) +
-                      m_rightBounds[i - 1].area() * sahHelper.getTriangleCost(rightNum);
+                      rightBounds[i - 1].area() * sahHelper.getTriangleCost(rightNum);
             if (sah < split.sah) {
                 split.sah = sah;
                 split.dim = dim;
@@ -237,7 +236,7 @@ void BVH::performSpatialSplit(NodeSpec &left, NodeSpec &right, const NodeSpec &s
     // Left-hand side:      [leftStart, leftEnd[
     // Uncategorized/split: [leftEnd, rightStart[
     // Right-hand side:     [rightStart, refs.getSize()[
-    Array<Reference> &refs = m_refStack;
+    Array<Reference> &refs = refStack;
     int leftStart = refs.getSize() - spec.numRef;
     int leftEnd = leftStart;
     int rightStart = refs.getSize();
@@ -343,9 +342,9 @@ void BVH::splitReference(Reference &left, Reference &right, const Reference &ref
 
 int BVH::sortCompare(void *data, int idxA, int idxB) {
     const auto *ptr = (const BVH *) data;
-    int dim = ptr->m_sortDim;
-    const Reference &ra = ptr->m_refStack[idxA];  // ra is a reference (struct containing a triIdx and bounds)
-    const Reference &rb = ptr->m_refStack[idxB];  //
+    int dim = ptr->sortDim;
+    const Reference &ra = ptr->refStack[idxA];  // ra is a reference (struct containing a triIdx and bounds)
+    const Reference &rb = ptr->refStack[idxB];  //
     F32 ca = ra.bounds.min()._v[dim] + ra.bounds.max()._v[dim];
     F32 cb = rb.bounds.min()._v[dim] + rb.bounds.max()._v[dim];
     return (ca < cb) ? -1 : (ca > cb) ? 1 : (ra.triIdx < rb.triIdx) ? -1 : (ra.triIdx > rb.triIdx) ? 1 : 0;
@@ -353,5 +352,9 @@ int BVH::sortCompare(void *data, int idxA, int idxB) {
 
 void BVH::sortSwap(void *data, int idxA, int idxB) {
     auto *ptr = (BVH *) data;
-    swap(ptr->m_refStack[idxA], ptr->m_refStack[idxB]);
+    swap(ptr->refStack[idxA], ptr->refStack[idxB]);
+}
+
+BVHHolder *BVH::createHolder() {
+    return new BVHHolder(*this);
 }

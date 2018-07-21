@@ -20,6 +20,10 @@ typedef signed long S64;
 typedef float F32;
 typedef double F64;
 
+inline F32 bitsToFloat(U32 a) { return *(F32 *) &a; }
+
+inline U32 floatToBits(F32 a) { return *(U32 *) &a; }
+
 struct Vec2f {
     /// float x, y;
     union {

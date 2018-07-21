@@ -65,7 +65,6 @@ void BVHNode::computeSubtreeProbabilities(const SAHHelper &helper, float probabi
     }
 }
 
-// TODO: requires valid probabilities...
 float BVHNode::computeSubtreeSAHCost(const SAHHelper &helper) const {
     float sah = probability * helper.getCost(getNumChildNodes(), getNumTriangles());
 

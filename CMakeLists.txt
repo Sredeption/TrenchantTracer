@@ -56,7 +56,27 @@ add_executable(TrenchantTracer
         src/geometry/Vertices.cpp
         include/geometry/Vertices.h
         src/core/Scene.cpp
-        include/core/Scene.h include/util/Array.h src/util/Config.cpp src/bvh/BVH.cpp include/bvh/BVH.h src/bvh/SAHHelper.cpp include/bvh/SAHHelper.h src/bvh/AABB.cpp include/bvh/AABB.h src/bvh/BVHNode.cpp include/bvh/BVHNode.h src/bvh/InnerNode.cpp include/bvh/InnerNode.h src/bvh/LeafNode.cpp include/bvh/LeafNode.h src/util/Sort.cpp include/util/Sort.h src/loader/SceneLoader.cpp include/loader/SceneLoader.h)
+        include/core/Scene.h
+        include/util/Array.h
+        src/util/Config.cpp
+        src/bvh/BVH.cpp
+        include/bvh/BVH.h
+        src/bvh/SAHHelper.cpp
+        include/bvh/SAHHelper.h
+        src/bvh/AABB.cpp
+        include/bvh/AABB.h
+        src/bvh/BVHNode.cpp
+        include/bvh/BVHNode.h
+        src/bvh/InnerNode.cpp
+        include/bvh/InnerNode.h
+        src/bvh/LeafNode.cpp
+        include/bvh/LeafNode.h
+        src/util/Sort.cpp
+        include/util/Sort.h
+        src/loader/SceneLoader.cpp
+        include/loader/SceneLoader.h
+        src/bvh/BVHHolder.cpp
+        include/bvh/BVHHolder.h)
 
 target_link_libraries(TrenchantTracer
         ${CUDA_LIBRARIES}
