@@ -5,14 +5,16 @@ Renderer *Renderer::instance = nullptr;
 const float Renderer::PI = 3.14156265f;
 const float Renderer::TWO_PI = 6.2831853071795864769252867665590057683943f;
 
-Renderer::Renderer(Config *config, Scene *scene) {
+Renderer::Renderer(Config *config, BVHCompact *bvhCompact, HDRImage *hdrImage) {
 
     this->config = config;
     // store rendering resources
-    this->scene = scene;
+    this->bvhCompact = bvhCompact;
+    this->hdrEnv = hdrImage;
 
     // allocate GPU memory for accumulation buffer
     cudaMalloc(&accumulatedBuffer, config->width * config->height * sizeof(Vec3f));
+    cudaMemset(accumulatedBuffer, 1, config->width * config->height * sizeof(Vec3f));
 
     // allocate GPU memory for interactive camera
     cudaMalloc(&cameraMetaDevice, sizeof(CameraMeta));
@@ -21,8 +23,9 @@ Renderer::Renderer(Config *config, Scene *scene) {
     cudaMalloc(&renderMetaDevice, sizeof(RenderMeta));
 
     // initialize HDR meta data
-    renderMeta.hdrWidth = scene->getHDREnv()->width;
-    renderMeta.hdrHeight = scene->getHDREnv()->height;
+    renderMeta.hdrWidth = hdrImage->width;
+    renderMeta.hdrHeight = hdrImage->height;
+    renderMeta.frameNumber = 0;
 
     // initialize constants
     renderMeta.SAMPLES = config->samples;
@@ -49,8 +52,8 @@ Renderer::~Renderer() {
     cudaFree(renderMetaDevice);
 }
 
-void Renderer::init(Config *config, Scene *scene) {
-    Renderer::instance = new Renderer(config, scene);
+void Renderer::init(Config *config, BVHCompact *bvhCompact, HDRImage *hdrImage) {
+    Renderer::instance = new Renderer(config, bvhCompact, hdrImage);
 }
 
 void Renderer::clear() {

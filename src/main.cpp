@@ -34,13 +34,27 @@ int main(int argc, char **argv) {
     Controller::init(camera);
 
     // load assets
-    SceneLoader sceneLoader(config);
-    Scene *scene = sceneLoader.load();
+    HDRLoader hdrLoader;
+    HDRImage *hdrEnv = hdrLoader.load(config->hdrFileName);
 
-    SAHHelper sahHelper;
-    BVH::BuildParams defaultParams;
-    auto bvh = new BVH(scene, sahHelper);
-    BVHHolder *bvhHolder = bvh->createHolder();
+    std::string bvhFileName = config->objFileName + ".bvh";
+    FILE *bvhFile = nullptr;
+    bvhFile = fopen(bvhFileName.c_str(), "rb");
+    BVHCompact *bvhCompact;
+    if (!bvhFile) {
+        SceneLoader sceneLoader(config);
+        Scene *scene = sceneLoader.load();
+        SAHHelper sahHelper;
+        auto bvh = new BVH(scene, sahHelper);
+        bvhCompact = bvh->createHolder();
+        bvhCompact->save(bvhFileName);
+        delete scene;
+        delete bvh;
+    } else {
+        bvhCompact = new BVHCompact(bvhFile);
+    }
+
+
 
     // initialize GLUT
     glutInit(&argc, argv);
@@ -73,7 +87,7 @@ int main(int argc, char **argv) {
         throw std::runtime_error("ERROR: Support for necessary OpenGL extensions missing.");
     fprintf(stderr, "GLEW initialized  \n");
 
-    Renderer::init(config, scene);
+    Renderer::init(config, bvhCompact, hdrEnv);
     fprintf(stderr, "Renderer initialized \n");
 
     Timer(0);
@@ -86,7 +100,6 @@ int main(int argc, char **argv) {
     delete camera;
     Controller::clear();
     Renderer::clear();
-    delete scene;
-    delete bvhHolder;
-    delete bvh;
+    delete bvhCompact;
+    delete hdrEnv;
 }

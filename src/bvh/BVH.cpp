@@ -42,7 +42,7 @@ BVH::BVH(Scene *scene, const SAHHelper &sahHelper, float splitAlpha) {
     triIndices.compact();
 
     // Done.
-    printf("BVH Builder: progress %.0f%%, duplicates %.0f%%\n",
+    printf("BVH Builder: progress %.0f%%, duplicates %.5f%%\n",
            100.0f, (F32) numDuplicates / (F32) scene->getNumTriangles() * 100.0f);
 
     printf("BVH Scene bounds: (%.1f,%.1f,%.1f) - (%.1f,%.1f,%.1f)\n", root->bounding.min().x,
@@ -257,8 +257,8 @@ void BVH::performSpatialSplit(NodeSpec &left, NodeSpec &right, const NodeSpec &s
     // Duplicate or unsplit references intersecting both sides.
     while (leftEnd < rightStart) {
         // Split reference.
-        Reference lref, rref;
-        splitReference(lref, rref, refs[leftEnd], split.dim, split.pos);
+        Reference leftRef, rightRef;
+        splitReference(leftRef, rightRef, refs[leftEnd], split.dim, split.pos);
 
         // Compute SAH for duplicate/unsplit candidates.
         AABB lub = left.bounds;  // Unsplit to left:     new left-hand bounds.
@@ -267,8 +267,8 @@ void BVH::performSpatialSplit(NodeSpec &left, NodeSpec &right, const NodeSpec &s
         AABB rdb = right.bounds; // Duplicate:           new right-hand bounds.
         lub.grow(refs[leftEnd].bounds);
         rub.grow(refs[leftEnd].bounds);
-        ldb.grow(lref.bounds);
-        rdb.grow(rref.bounds);
+        ldb.grow(leftRef.bounds);
+        rdb.grow(rightRef.bounds);
 
 
         F32 lac = sahHelper.getTriangleCost(leftEnd - leftStart);
@@ -293,8 +293,8 @@ void BVH::performSpatialSplit(NodeSpec &left, NodeSpec &right, const NodeSpec &s
             // Duplicate?
             left.bounds = ldb;
             right.bounds = rdb;
-            refs[leftEnd++] = lref;
-            refs.add(rref);
+            refs[leftEnd++] = leftRef;
+            refs.add(rightRef);
         }
     }
     left.numRef = leftEnd - leftStart;
@@ -355,6 +355,6 @@ void BVH::sortSwap(void *data, int idxA, int idxB) {
     swap(ptr->refStack[idxA], ptr->refStack[idxB]);
 }
 
-BVHHolder *BVH::createHolder() {
-    return new BVHHolder(*this);
+BVHCompact *BVH::createHolder() {
+    return new BVHCompact(*this);
 }

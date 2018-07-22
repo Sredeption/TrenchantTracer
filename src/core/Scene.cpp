@@ -17,10 +17,6 @@ void Scene::add(Object *object) {
     }
 }
 
-void Scene::add(HDRImage *hdrEnv) {
-    this->hdrEnv = hdrEnv;
-}
-
 int Scene::getNumTriangles() const {
     return vertexIndices.getSize();
 }
@@ -49,6 +45,3 @@ const Vec3f &Scene::getVertex(int idx) {
     return *getVertexPtr(idx);
 }
 
-const HDRImage *Scene::getHDREnv() {
-    return hdrEnv;
-}

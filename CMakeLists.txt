@@ -75,8 +75,8 @@ add_executable(TrenchantTracer
         include/util/Sort.h
         src/loader/SceneLoader.cpp
         include/loader/SceneLoader.h
-        src/bvh/BVHHolder.cpp
-        include/bvh/BVHHolder.h)
+        src/bvh/BVHCompact.cpp
+        include/bvh/BVHCompact.h src/bvh/BVHIntersect.cu)
 
 target_link_libraries(TrenchantTracer
         ${CUDA_LIBRARIES}

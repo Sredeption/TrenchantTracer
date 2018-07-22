@@ -11,7 +11,6 @@ class Scene {
 private:
     Array<Vec3i> vertexIndices;
     Array<Vec3f> vertices;
-    HDRImage* hdrEnv;
 
 public:
     Scene();
@@ -19,7 +18,6 @@ public:
     ~Scene();
 
     void add(Object *object);
-    void add(HDRImage* hdrEnv);
 
     int getNumTriangles() const;
 
@@ -33,7 +31,6 @@ public:
 
     const Vec3f &getVertex(int idx);
 
-    const HDRImage* getHDREnv();
 
 };
 

@@ -14,6 +14,7 @@
 #include <control/Controller.h>
 #include <util/Config.h>
 #include <util/WangHash.h>
+#include <bvh/BVHCompact.h>
 
 struct RenderMeta {
     int frameNumber;
@@ -38,7 +39,8 @@ private:
     RenderMeta *renderMetaDevice; //device memory
 
     Config *config;
-    Scene *scene;
+    BVHCompact *bvhCompact;
+    HDRImage *hdrEnv;
 
     void render();
 
@@ -46,11 +48,11 @@ public:
     const static float PI;
     const static float TWO_PI;
 
-    Renderer(Config *config, Scene *scene);
+    Renderer(Config *config, BVHCompact *bvhCompact, HDRImage *hdrImage);
 
     ~Renderer();
 
-    static void init(Config *config, Scene *scene);
+    static void init(Config *config, BVHCompact *bvhCompact, HDRImage *hdrImage);
 
     static Renderer *getInstance();
 

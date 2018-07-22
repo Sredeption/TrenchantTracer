@@ -6,12 +6,12 @@
 #include <bvh/BVHNode.h>
 #include <bvh/InnerNode.h>
 #include <bvh/LeafNode.h>
-#include <bvh/BVHHolder.h>
+#include <bvh/BVHCompact.h>
 #include <math/LinearMath.h>
 #include <util/Array.h>
 #include <util/Sort.h>
 
-class BVHHolder;
+class BVHCompact;
 
 //Bounding Volume Hierarchies
 class BVH {
@@ -27,19 +27,6 @@ public:
         S32 numLeafNodes;
         S32 numChildNodes;
         S32 numTris;
-    };
-
-    struct BuildParams {
-        Stats *stats;
-        bool enablePrints;
-        F32 splitAlpha;     // spatial split area threshold, see Nvidia paper on SBVH by Martin Stich, usually 0.05
-
-        BuildParams() {
-            stats = nullptr;
-            enablePrints = true;
-            splitAlpha = 1.0e-5f;
-        }
-
     };
 
 private:
@@ -118,11 +105,10 @@ public:
 
     const Array<S32> &getTriIndices() const { return triIndices; }
 
-    BVHHolder *createHolder();
+    BVHCompact *createHolder();
 
 private:
     BVHNode *buildNode(const NodeSpec &spec, int level);
-
 
     BVHNode *createLeaf(const NodeSpec &spec);
 

@@ -1,7 +1,3 @@
-//
-// Created by issac on 18-7-18.
-//
-
 #ifndef TRENCHANTTRACER_BVHHOLDER_H
 #define TRENCHANTTRACER_BVHHOLDER_H
 
@@ -13,7 +9,7 @@
 
 class BVH;
 
-class BVHHolder {
+class BVHCompact {
 private:
     struct StackEntry {
         const BVHNode *node;
@@ -22,7 +18,6 @@ private:
         StackEntry(const BVHNode *n = nullptr, int i = 0) : node(n), idx(i) {}
     };
 
-    const BVH &bvh;
 
     Vec4i *nodes; // device memory
     Vec4i *woopTri; // device memory
@@ -37,13 +32,17 @@ private:
     U32 triCount;
 public:
 
-    explicit BVHHolder(const BVH &bvh);
+    __host__ explicit BVHCompact(const BVH &bvh);
 
-    ~BVHHolder();
+    __host__ explicit BVHCompact(FILE *bvhFile);
 
-    void createCompact(int nodeOffsetSizeDiv);
+    __host__ ~BVHCompact();
 
-    void woopifyTri(int idx, Vec4f *woopTri, Vec4f *debugTri);
+    __host__ void createCompact(const BVH &bvh, int nodeOffsetSizeDiv);
+
+    __host__ void woopifyTri(const BVH &bvh, int idx, Vec4f *woopTri, Vec4f *debugTri);
+
+    __host__ void save(const std::string &fileName);
 };
 
 

@@ -199,6 +199,6 @@ void Renderer::render() {
     cudaMemcpy(renderMetaDevice, &renderMeta, sizeof(RenderMeta), cudaMemcpyHostToDevice);
 
 //    pathTracingKernel(outputBuffer, accumulatedBuffer, hdrEnv->hdrTexture, renderMetaDevice, cameraMetaDevice);
-    pathTracingKernel<<<grid, block>>>(outputBuffer, accumulatedBuffer, scene->getHDREnv()->hdrTexture, renderMetaDevice, cameraMetaDevice);
+    pathTracingKernel<<<grid, block>>>(outputBuffer, accumulatedBuffer, hdrEnv->hdrTexture, renderMetaDevice, cameraMetaDevice);
 }
 

@@ -12,9 +12,6 @@ Scene *SceneLoader::load() {
     scene->add(object);
     delete object;
 
-    HDRLoader hdrLoader;
-    HDRImage *hdrEnv = hdrLoader.load(config->hdrFileName);
-    scene->add(hdrEnv);
 
     return scene;
 }
