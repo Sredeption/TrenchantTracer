@@ -1,4 +1,5 @@
 #include <bvh/BVHCompact.h>
+#include <driver_types.h>
 
 //Nodes / BVHLayout_Compact  (12 floats + 4 ints = 64 bytes)
 // inner node contains two child nodes c0 and c1, each having x,y,z coordinates for AABBhi and AABBlo, 2*2*3 = 12 floats
@@ -17,6 +18,7 @@
 __host__ BVHCompact::BVHCompact(const BVH &bvh) :
         leafNodeCount(0), triCount(0) {
     createCompact(bvh, 16);
+    createTexture();
 }
 
 BVHCompact::BVHCompact(FILE *bvhFile) {
@@ -51,6 +53,22 @@ BVHCompact::BVHCompact(FILE *bvhFile) {
         throw std::runtime_error("Error reading BVH cache file!\n");
     if (triIndicesSize != fread(cpuTriIndices, sizeof(S32), triIndicesSize, bvhFile))
         throw std::runtime_error("Error reading BVH cache file!\n");
+
+    cudaMalloc(&nodes, nodesSize * sizeof(Vec4i));
+    cudaMemcpy(nodes, cpuNodes, nodesSize * sizeof(Vec4i), cudaMemcpyHostToDevice);
+    cudaMalloc(&woopTri, woopTriSize * sizeof(Vec4i));
+    cudaMemcpy(woopTri, cpuWoopTri, woopTriSize * sizeof(Vec4i), cudaMemcpyHostToDevice);
+    cudaMalloc(&debugTri, debugTriSize * sizeof(Vec4i));
+    cudaMemcpy(debugTri, cpuDebugTri, debugTriSize * sizeof(Vec4i), cudaMemcpyHostToDevice);
+    cudaMalloc(&triIndices, triIndicesSize * sizeof(U32));
+    cudaMemcpy(triIndices, cpuTriIndices, triIndicesSize * sizeof(U32), cudaMemcpyHostToDevice);
+
+    free(cpuNodes);
+    free(cpuWoopTri);
+    free(cpuDebugTri);
+    free(cpuTriIndices);
+
+    createTexture();
 }
 
 __host__ BVHCompact::~BVHCompact() {
@@ -132,7 +150,6 @@ __host__ void BVHCompact::createCompact(const BVH &bvh, int nodeOffsetSizeDiv) {
                 // and array of triangle indices
             }
 
-
             // Leaf node terminator to indicate end of leaf, stores hexadecimal value
             // 0x80000000 (= 2147483648 in decimal)
             triWoopData.add(0x80000000);
@@ -196,7 +213,7 @@ __host__ void BVHCompact::createCompact(const BVH &bvh, int nodeOffsetSizeDiv) {
         cpuDebugTri[i].w = triDebugData.get(i).w;
     }
     cudaMalloc(&debugTri, debugTriSize * sizeof(Vec4i));
-    cudaMemcpy(debugTri, cpuWoopTri, debugTriSize * sizeof(Vec4i), cudaMemcpyHostToDevice);
+    cudaMemcpy(debugTri, cpuDebugTri, debugTriSize * sizeof(Vec4i), cudaMemcpyHostToDevice);
 
     triIndicesSize = (U32) triIndexData.getSize();
     auto cpuTriIndices = (S32 *) malloc(triIndicesSize * sizeof(S32));
@@ -239,6 +256,45 @@ __host__ void BVHCompact::woopifyTri(const BVH &bvh, int idx, Vec4f *woopTri, Ve
     woopTri[2] = mtx.getRow(1);
 }
 
+__host__ void BVHCompact::createTexture() {
+    cudaResourceDesc resDesc{};
+    memset(&resDesc, 0, sizeof(resDesc));
+    resDesc.resType = cudaResourceTypeLinear;
+    resDesc.res.linear.devPtr = nodes;
+    resDesc.res.linear.desc.f = cudaChannelFormatKindSigned;
+    resDesc.res.linear.desc.x = 32; // r-channel bits
+    resDesc.res.linear.desc.y = 32; // g-channel bits
+    resDesc.res.linear.desc.z = 32; // b-channel bits
+    resDesc.res.linear.desc.w = 32; // a-channel bits
+    resDesc.res.linear.sizeInBytes = nodesSize * sizeof(float4);
+
+    cudaTextureDesc texDesc{};
+    memset(&texDesc, 0, sizeof(texDesc));
+    texDesc.readMode = cudaReadModeElementType;
+    texDesc.filterMode = cudaFilterModeLinear;
+
+    cudaCreateTextureObject(&nodesTexture, &resDesc, &texDesc, nullptr);
+
+    resDesc.res.linear.devPtr = woopTri;
+    resDesc.res.linear.sizeInBytes = woopTriSize * sizeof(float4);
+
+    cudaCreateTextureObject(&woopTriTexture, &resDesc, &texDesc, nullptr);
+
+    resDesc.res.linear.devPtr = debugTri;
+    resDesc.res.linear.sizeInBytes = debugTriSize * sizeof(float4);
+
+    cudaCreateTextureObject(&debugTriTexture, &resDesc, &texDesc, nullptr);
+
+    resDesc.res.linear.devPtr = triIndices;
+    resDesc.res.linear.desc.x = 32; // r-channel bits
+    resDesc.res.linear.desc.y = 0; // g-channel bits
+    resDesc.res.linear.desc.z = 0; // b-channel bits
+    resDesc.res.linear.desc.w = 0; // a-channel bits
+    resDesc.res.linear.sizeInBytes = triIndicesSize * sizeof(int1);
+
+    cudaCreateTextureObject(&triIndicesTexture, &resDesc, &texDesc, nullptr);
+}
+
 __host__ void BVHCompact::save(const std::string &fileName) {
 
     FILE *bvhFile = fopen(fileName.c_str(), "wb");
@@ -273,7 +329,7 @@ __host__ void BVHCompact::save(const std::string &fileName) {
         std::runtime_error("Error writing BVH cache file!\n");
 
     auto cpuDebugTri = (Vec4i *) malloc(this->debugTriSize * sizeof(Vec4i));
-    cudaMemcpy(cpuWoopTri, this->debugTri, this->debugTriSize * sizeof(Vec4i), cudaMemcpyDeviceToHost);
+    cudaMemcpy(cpuDebugTri, this->debugTri, this->debugTriSize * sizeof(Vec4i), cudaMemcpyDeviceToHost);
     if (debugTriSize != fwrite(cpuDebugTri, sizeof(Vec4i), debugTriSize, bvhFile))
         std::runtime_error("Error writing BVH cache file!\n");
 

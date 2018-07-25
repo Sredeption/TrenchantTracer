@@ -3,6 +3,7 @@
 #include <device_launch_parameters.h>
 #include <curand_kernel.h>
 #include <math/CutilMath.h>
+#include <geometry/Ray.h>
 
 // union struct required for mapping pixel colours to OpenGL buffer
 union Color  // 4 bytes = 4 chars = 1 float
@@ -12,17 +13,21 @@ union Color  // 4 bytes = 4 chars = 1 float
 };
 
 __device__ Vec3f renderKernel(curandState *randState, cudaTextureObject_t hdrTexture,
-                              Vec3f &rayDirection, RenderMeta *renderMeta) {
+                              BVHCompact *bvhCompact, Ray &ray, RenderMeta *renderMeta) {
 
     Vec3f mask = Vec3f(1.0f, 1.0f, 1.0f); // colour mask
     Vec3f accumulatedColor = Vec3f(0.0f, 0.0f, 0.0f); // accumulated colour
     Vec3f direct = Vec3f(0, 0, 0);
     Vec3f emit = Vec3f(0, 0, 0);
 
+    int threadId = (blockIdx.x + blockIdx.y * gridDim.x) * (blockDim.x * blockDim.y) +
+                   (threadIdx.y * blockDim.x) + threadIdx.x;
     for (int bounces = 0; bounces < 4; bounces++) {
         // iteration up to 4 bounces (instead of recursion in CPU code)
 
         float hitDistance = 1e20;
+
+        Hit hit = ray.intersect(bvhCompact, false);
 
         if (hitDistance > 1e19) {
             // if ray misses scene, return sky
@@ -36,11 +41,11 @@ __device__ Vec3f renderKernel(curandState *randState, cudaTextureObject_t hdrTex
             //		return texture2D(sampler, longlat / vec2(2.0*PI, PI)).xyz; }
 
             // Convert (normalized) dir to spherical coordinates.
-            float longlatX = atan2f(rayDirection.x, rayDirection.z);
+            float longlatX = atan2f(ray.direction.x, ray.direction.z);
             // Y is up, swap x for y and z for x
             longlatX = longlatX < 0.f ? longlatX + renderMeta->TWO_PI : longlatX;
             // wrap around full circle if negative
-            float longlatY = acosf(rayDirection.y);
+            float longlatY = acosf(ray.direction.y);
             // add RotateMap at some point, see Fragmentarium
 
             // map theta and phi to u and v texture coordinates in [0,1] x [0,1] range
@@ -67,7 +72,7 @@ __device__ Vec3f renderKernel(curandState *randState, cudaTextureObject_t hdrTex
 }
 
 __global__ void pathTracingKernel(Vec3f *outputBuffer, Vec3f *accumulatedBuffer, cudaTextureObject_t hdrTexture,
-                                  RenderMeta *renderMeta, CameraMeta *cameraMeta) {
+                                  RenderMeta *renderMeta, CameraMeta *cameraMeta, BVHCompact *bvhCompact) {
 
     // assign a CUDA thread to every pixel by using the threadIndex
     unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -76,6 +81,8 @@ __global__ void pathTracingKernel(Vec3f *outputBuffer, Vec3f *accumulatedBuffer,
     // get window size from camera
     int width = cameraMeta->resolution.x;
     int height = cameraMeta->resolution.y;
+    float ray_tmin = 0.00001f; // set to 0.01f when using refractive material
+    float ray_tmax = 1e20;
 
     // global threadId, see richiesams blogspot
     int threadId = (blockIdx.x + blockIdx.y * gridDim.x) * (blockDim.x * blockDim.y) +
@@ -160,13 +167,15 @@ __global__ void pathTracingKernel(Vec3f *outputBuffer, Vec3f *accumulatedBuffer,
         apertureToImagePlane.normalize(); // ray direction needs to be normalised
 
         // ray direction
-        Vec3f rayInWorldSpace = apertureToImagePlane;
-        rayInWorldSpace.normalize();
+        Vec3f directionInWorldSpace = apertureToImagePlane;
+        directionInWorldSpace.normalize();
 
         // ray origin
         Vec3f originInWorldSpace = aperturePoint;
 
-        finalColor += renderKernel(&randState, hdrTexture, rayInWorldSpace, renderMeta) * (1.0f / renderMeta->SAMPLES);
+        Ray rayInWorldSpace(originInWorldSpace, directionInWorldSpace, ray_tmin, ray_tmax);
+        finalColor += renderKernel(&randState, hdrTexture, bvhCompact, rayInWorldSpace, renderMeta) *
+                      (1.0f / renderMeta->SAMPLES);
     }
 
     // add pixel color to accumulation buffer (accumulates all samples)
@@ -198,7 +207,9 @@ void Renderer::render() {
     // copy the CPU rendering parameter to a GPU rendering parameter
     cudaMemcpy(renderMetaDevice, &renderMeta, sizeof(RenderMeta), cudaMemcpyHostToDevice);
 
-//    pathTracingKernel(outputBuffer, accumulatedBuffer, hdrEnv->hdrTexture, renderMetaDevice, cameraMetaDevice);
-    pathTracingKernel<<<grid, block>>>(outputBuffer, accumulatedBuffer, hdrEnv->hdrTexture, renderMetaDevice, cameraMetaDevice);
+//    pathTracingKernel(outputBuffer, accumulatedBuffer, hdrEnv->hdrTexture, renderMetaDevice, cameraMetaDevice,
+//                      bvhCompact);
+    pathTracingKernel << < grid, block >> > (outputBuffer, accumulatedBuffer, hdrEnv->hdrTexture,
+            renderMetaDevice, cameraMetaDevice, bvhCompact);
 }
 

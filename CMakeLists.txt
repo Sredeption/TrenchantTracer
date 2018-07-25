@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
-project(TrenchantTracer)
+project(TrenchantTracer CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 11)
+set(CUDA_SEPARABLE_COMPILATION ON)
 
-find_package(CUDA REQUIRED)
+find_package(CUDA QUIET REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(GLUT REQUIRED)
 find_package(OpenGL REQUIRED)
@@ -17,11 +18,17 @@ include_directories(include)
 include_directories(lib/include)
 
 set(CUDA_SRC
-        src/core/RenderKernel.cu)
+        src/geometry/Ray.cu
+        src/geometry/Hit.cu
+        src/core/RenderKernel.cu
+        src/geometry/IntersectKernel.cu
+        )
 
 CUDA_COMPILE(CUDA_O ${CUDA_SRC})
 
 add_executable(TrenchantTracer
+        ${CUDA_O}
+        include/geometry/Ray.h
         src/main.cpp
         src/core/Camera.cpp
         include/core/Camera.h
@@ -42,7 +49,6 @@ add_executable(TrenchantTracer
         include/core/Renderer.h
         src/util/WangHash.cpp
         include/util/WangHash.h
-        ${CUDA_O}
         src/loader/OBJLoader.cpp
         include/loader/OBJLoader.h
         src/core/Object.cpp
@@ -76,7 +82,8 @@ add_executable(TrenchantTracer
         src/loader/SceneLoader.cpp
         include/loader/SceneLoader.h
         src/bvh/BVHCompact.cpp
-        include/bvh/BVHCompact.h src/bvh/BVHIntersect.cu)
+        include/bvh/BVHCompact.h
+        include/geometry/Hit.h)
 
 target_link_libraries(TrenchantTracer
         ${CUDA_LIBRARIES}

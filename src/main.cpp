@@ -54,8 +54,6 @@ int main(int argc, char **argv) {
         bvhCompact = new BVHCompact(bvhFile);
     }
 
-
-
     // initialize GLUT
     glutInit(&argc, argv);
 

@@ -56,6 +56,8 @@ void Keyboard::keyboard(unsigned char key) {
             camera->changeFocalDistance(-0.1f);
             controller->bufferReset = true;
             break;
+        case ('q'):
+            exit(0);
         default:
             break;
     }

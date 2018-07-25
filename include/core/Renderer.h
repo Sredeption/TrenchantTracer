@@ -39,7 +39,7 @@ private:
     RenderMeta *renderMetaDevice; //device memory
 
     Config *config;
-    BVHCompact *bvhCompact;
+    BVHCompact *bvhCompact; //device memory
     HDRImage *hdrEnv;
 
     void render();

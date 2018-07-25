@@ -2,10 +2,11 @@
 #define TRENCHANTTRACER_BVHHOLDER_H
 
 
+#include <host_defines.h>
+
 #include <bvh/BVH.h>
 #include <math/LinearMath.h>
 #include <util/Array.h>
-
 
 class BVH;
 
@@ -18,11 +19,21 @@ private:
         StackEntry(const BVHNode *n = nullptr, int i = 0) : node(n), idx(i) {}
     };
 
+    __host__ void createTexture();
 
-    Vec4i *nodes; // device memory
-    Vec4i *woopTri; // device memory
-    Vec4i *debugTri; // device memory
-    S32 *triIndices; // device memory
+    __host__ void woopifyTri(const BVH &bvh, int idx, Vec4f *woopTri, Vec4f *debugTri);
+
+public:
+
+    float4 *nodes; // device memory
+    float4 *woopTri; // device memory
+    float4 *debugTri; // device memory
+    int1 *triIndices; // device memory
+
+    cudaTextureObject_t nodesTexture;
+    cudaTextureObject_t woopTriTexture;
+    cudaTextureObject_t debugTriTexture;
+    cudaTextureObject_t triIndicesTexture;
 
     U32 nodesSize;
     U32 woopTriSize;
@@ -30,7 +41,7 @@ private:
     U32 triIndicesSize;
     U32 leafNodeCount;
     U32 triCount;
-public:
+
 
     __host__ explicit BVHCompact(const BVH &bvh);
 
@@ -40,9 +51,9 @@ public:
 
     __host__ void createCompact(const BVH &bvh, int nodeOffsetSizeDiv);
 
-    __host__ void woopifyTri(const BVH &bvh, int idx, Vec4f *woopTri, Vec4f *debugTri);
 
     __host__ void save(const std::string &fileName);
+
 };
 
 
