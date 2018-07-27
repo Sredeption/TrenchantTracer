@@ -13,14 +13,17 @@
 #define F32_MIN          (1.175494351e-38f)
 #define F32_MAX          (3.402823466e+38f)
 
+class BVHCompact;
+
 class Ray {
 public:
-    Vec4f origin;
-    Vec4f direction;
+    Vec3f origin;
+    Vec3f direction;
+    float tMin;
+    float tMax;
+
 
     __host__ __device__ Ray(const Vec3f &origin, const Vec3f &direction, float tMin, float tMax);
-
-    __host__ __device__ Ray(const Vec4f &origin, const Vec4f &direction);
 
     __host__ __device__ Ray(const Ray &ray);
 

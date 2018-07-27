@@ -16,7 +16,6 @@ HDRImage::~HDRImage() {
 void HDRImage::copyToGPU(float *colors) {
     auto cpuHDREnv = new Vec4f[width * height];
 
-
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {
             int idx1 = width * j + i;
@@ -51,3 +50,4 @@ void HDRImage::createTexture() {
 
     cudaCreateTextureObject(&hdrTexture, &resDesc, &texDesc, nullptr);
 }
+

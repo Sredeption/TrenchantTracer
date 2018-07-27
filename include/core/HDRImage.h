@@ -1,13 +1,15 @@
-//
-// Created by issac on 18-7-7.
-//
-
 #ifndef TRENCHANTTRACER_HDRIMAGE_H
 #define TRENCHANTTRACER_HDRIMAGE_H
 
 #include <cuda_runtime.h>
 
+#include <core/Renderer.h>
 #include <math/LinearMath.h>
+#include <geometry/Ray.h>
+
+class Ray;
+
+class RenderMeta;
 
 class HDRImage {
 private:
@@ -26,6 +28,7 @@ public:
 
     ~HDRImage();
 
+    __device__ Vec3f sample(const Ray &ray, RenderMeta *renderMeta);
 
 };
 

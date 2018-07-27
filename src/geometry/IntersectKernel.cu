@@ -91,19 +91,15 @@ __device__ __inline__ void swap2(int &a, int &b) {
 __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
     int traversalStack[STACK_SIZE];
 
-    float tmin;                   // t-value from which the ray starts. Usually 0.
     float idirx, idiry, idirz;    // 1 / dir
     float oodx, oody, oodz;       // orig / dir
+    Hit hit;
 
     char *stackPtr;
     int leafAddr;
     int nodeAddr;
-    float hitT;
-    int hitIndex = -1;
-    Vec3f trinormal;
 
-    tmin = origin.w;
-    hitT = direction.w;
+    hit.distance = tMax;
 
     // ooeps is very small number, used instead of ray direction xyz component when that component is near zero
     float ooeps = exp2f(-80.0f); // Avoid div by zero, returns 1/2^80, an extremely small number
@@ -123,7 +119,6 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
     while (nodeAddr != EntrypointSentinel) {
         // Traverse internal nodes until all SIMD lanes have found a leaf.
 
-        bool searchingLeaf = true; // flag required to increase efficiency of threads in warp
         while (nodeAddr >= 0 && nodeAddr != EntrypointSentinel) {
             float4 *ptr = bvh->nodes + nodeAddr;
             float4 n0xy = ptr[0]; // childnode 0, xy-bounds (c0.lo.x, c0.hi.x, c0.lo.y, c0.hi.y)
@@ -142,20 +137,20 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
             float c0hiz = nz.y * idirz - oodz; // nz.y   = c0.hi.z, child 0 max bound z
             float c1loz = nz.z * idirz - oodz; // nz.z   = c1.lo.z, child 1 min bound z
             float c1hiz = nz.w * idirz - oodz; // nz.w   = c1.hi.z, child 1 max bound z
-            float c0min = spanBeginKepler2(c0lox, c0hix, c0loy, c0hiy, c0loz, c0hiz, tmin);
+            float c0min = spanBeginKepler2(c0lox, c0hix, c0loy, c0hiy, c0loz, c0hiz, tMin);
             // Tesla does max4(min, min, min, tmin)
-            float c0max = spanEndKepler2(c0lox, c0hix, c0loy, c0hiy, c0loz, c0hiz, hitT);
+            float c0max = spanEndKepler2(c0lox, c0hix, c0loy, c0hiy, c0loz, c0hiz, hit.distance);
             // Tesla does min4(max, max, max, tmax)
             float c1lox = n1xy.x * idirx - oodx; // n1xy.x = c1.lo.x, child 1 min bound x
             float c1hix = n1xy.y * idirx - oodx; // n1xy.y = c1.hi.x, child 1 max bound x
             float c1loy = n1xy.z * idiry - oody; // n1xy.z = c1.lo.y, child 1 min bound y
             float c1hiy = n1xy.w * idiry - oody; // n1xy.w = c1.hi.y, child 1 max bound y
-            float c1min = spanBeginKepler2(c1lox, c1hix, c1loy, c1hiy, c1loz, c1hiz, tmin);
-            float c1max = spanEndKepler2(c1lox, c1hix, c1loy, c1hiy, c1loz, c1hiz, hitT);
+            float c1min = spanBeginKepler2(c1lox, c1hix, c1loy, c1hiy, c1loz, c1hiz, tMin);
+            float c1max = spanEndKepler2(c1lox, c1hix, c1loy, c1hiy, c1loz, c1hiz, hit.distance);
 
             float ray_tmax = 1e20;
-            bool traverseChild0 = (c0min <= c0max) && (c0min >= tmin) && (c0min <= ray_tmax);
-            bool traverseChild1 = (c1min <= c1max) && (c1min >= tmin) && (c1min <= ray_tmax);
+            bool traverseChild0 = (c0min <= c0max) && (c0min >= tMin) && (c0min <= ray_tmax);
+            bool traverseChild1 = (c1min <= c1max) && (c1min >= tMin) && (c1min <= ray_tmax);
 
             if (!traverseChild0 && !traverseChild1) {
                 nodeAddr = *(int *) stackPtr; // fetch next node by popping stack
@@ -182,7 +177,6 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
             // if nodeAddr less than 0 -> nodeAddr is a leaf
             if (nodeAddr < 0 && leafAddr >= 0) {
                 // if leafAddr >= 0 -> no leaf found yet (first leaf)
-                searchingLeaf = false; // required for warp efficiency
                 leafAddr = nodeAddr;
 
                 nodeAddr = *(int *) stackPtr;  // pops next node from stack
@@ -214,6 +208,7 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
             if (!mask)
                 break;
         }
+
         ///////////////////////////////////////
         /// LEAF NODE / TRIANGLE INTERSECTION
         ///////////////////////////////////////
@@ -243,12 +238,12 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
                 Vec3f bary = intersect(v0, v1, v2);
 
                 float t = bary.z; // hit distance along ray
-                if (tmin < t && t < hitT) {
+                if (tMin < t && t < hit.distance) {
                     // if there is a miss, t will be larger than hitT (ray.tmax)
-                    hitIndex = triAddr;
-                    hitT = t;  // keeps track of closest hitpoint
+                    hit.index = triAddr;
+                    hit.distance = t;  // keeps track of closest hitpoint
+                    hit.noraml = cross(v0 - v1, v0 - v2);
 
-                    trinormal = cross(v0 - v1, v0 - v2);
                     if (!needClosestHit) {
                         // shadow rays only require "any" hit with scene geometry, not the closest one
                         nodeAddr = EntrypointSentinel;
@@ -268,20 +263,13 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
         } // end leaf/triangle intersection loop
     } // end of node traversal loop
 
-
     // Remap intersected triangle index, and store the result.
-    if (hitIndex != -1) {
+    if (hit.index != -1) {
         // remapping tri indices delayed until this point for performance reasons
         // (slow global memory lookup in de gpuTriIndices array) because multiple triangles per node can potentially be hit
-
-        hitIndex = bvh->triIndices[hitIndex].x;
+        hit.index = bvh->triIndices[hit.index].x;
     }
 
-    Hit hit;
-
-    hit.index = hitIndex;
-    hit.distance = hitT;
-    hit.noraml = trinormal;
     return hit;
 }
 
@@ -291,9 +279,6 @@ __device__ Vec3f Ray::intersect(const Vec3f &v0, const Vec3f &v1, const Vec3f &v
 
     const float EPSILON = 0.00001f; // works better
     const Vec3f miss(F32_MAX, F32_MAX, F32_MAX);
-
-    float raytmin = origin.w;
-    float raytmax = direction.w;
 
     Vec3f edge1 = v1 - v0;
     Vec3f edge2 = v2 - v0;
@@ -323,7 +308,7 @@ __device__ Vec3f Ray::intersect(const Vec3f &v0, const Vec3f &v1, const Vec3f &v
 
     float t = dot(edge2, qvec) * invdet;
 
-    if (t > raytmin && t < raytmax)
+    if (t > tMin && t < tMax)
         return Vec3f(u, v, t);
 
     // otherwise (t < raytmin or t > raytmax) miss

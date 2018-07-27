@@ -16,6 +16,10 @@
 #include <util/WangHash.h>
 #include <bvh/BVHCompact.h>
 
+class HDRImage;
+
+class BVHCompact;
+
 struct RenderMeta {
     int frameNumber;
     unsigned int hashedFrame;

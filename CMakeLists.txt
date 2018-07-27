@@ -22,6 +22,7 @@ set(CUDA_SRC
         src/geometry/Hit.cu
         src/core/RenderKernel.cu
         src/geometry/IntersectKernel.cu
+        src/core/HDRKernel.cu
         )
 
 CUDA_COMPILE(CUDA_O ${CUDA_SRC})

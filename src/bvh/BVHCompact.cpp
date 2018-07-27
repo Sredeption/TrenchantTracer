@@ -15,7 +15,7 @@
 //		BVH node bounds: c0.lo.x, c0.hi.x, c0.lo.y, c0.hi.y, c0.lo.z, c0.hi.z
 
 
-__host__ BVHCompact::BVHCompact(const BVH &bvh) :
+__host__ BVHCompact::BVHCompact(const BVH &bvh):
         leafNodeCount(0), triCount(0) {
     createCompact(bvh, 16);
     createTexture();

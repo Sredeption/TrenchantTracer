@@ -13,6 +13,8 @@
 
 class BVHCompact;
 
+class Scene;
+
 //Bounding Volume Hierarchies
 class BVH {
 public:

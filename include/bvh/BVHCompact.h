@@ -10,6 +10,8 @@
 
 class BVH;
 
+class BVHNode;
+
 class BVHCompact {
 private:
     struct StackEntry {
@@ -42,7 +44,6 @@ public:
     U32 leafNodeCount;
     U32 triCount;
 
-
     __host__ explicit BVHCompact(const BVH &bvh);
 
     __host__ explicit BVHCompact(FILE *bvhFile);
@@ -50,7 +51,6 @@ public:
     __host__ ~BVHCompact();
 
     __host__ void createCompact(const BVH &bvh, int nodeOffsetSizeDiv);
-
 
     __host__ void save(const std::string &fileName);
 

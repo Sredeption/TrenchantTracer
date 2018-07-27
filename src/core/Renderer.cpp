@@ -12,7 +12,8 @@ Renderer::Renderer(Config *config, BVHCompact *bvhCompact, HDRImage *hdrImage) {
     cudaMalloc(&this->bvhCompact, sizeof(BVHCompact));
     cudaMemcpy(this->bvhCompact, bvhCompact, sizeof(BVHCompact), cudaMemcpyHostToDevice);
 
-    this->hdrEnv = hdrImage;
+    cudaMalloc(&this->hdrEnv, sizeof(HDRImage));
+    cudaMemcpy(this->hdrEnv, hdrImage, sizeof(HDRImage), cudaMemcpyHostToDevice);
 
     // allocate GPU memory for accumulation buffer
     cudaMalloc(&accumulatedBuffer, config->width * config->height * sizeof(Vec3f));
@@ -49,6 +50,7 @@ Renderer::Renderer(Config *config, BVHCompact *bvhCompact, HDRImage *hdrImage) {
 
 Renderer::~Renderer() {
     cudaFree(bvhCompact);
+    cudaFree(hdrEnv);
     cudaFree(accumulatedBuffer);
     cudaFree(outputBuffer);
     cudaFree(cameraMetaDevice);

@@ -12,66 +12,109 @@ union Color  // 4 bytes = 4 chars = 1 float
     uchar4 components;
 };
 
-__device__ Vec3f renderKernel(curandState *randState, cudaTextureObject_t hdrTexture,
-                              BVHCompact *bvhCompact, Ray &ray, RenderMeta *renderMeta) {
+enum Refl_t {
+    DIFF, METAL, SPEC, REFR, COAT
+};  // material types
+
+__device__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEnv,
+                              BVHCompact *bvhCompact, Ray ray, RenderMeta *renderMeta) {
 
     Vec3f mask = Vec3f(1.0f, 1.0f, 1.0f); // colour mask
     Vec3f accumulatedColor = Vec3f(0.0f, 0.0f, 0.0f); // accumulated colour
     Vec3f direct = Vec3f(0, 0, 0);
-    Vec3f emit = Vec3f(0, 0, 0);
+    Vec3f emit;
+    Vec3f n; // normal
+    Vec3f nl; // oriented normal
+    Vec3f hitpoint; // intersection point
+    Vec3f trinormal;
+    Refl_t refltype;
+    Vec3f objcol;
+    Vec3f nextdir; // ray direction of next path segment
 
-    int threadId = (blockIdx.x + blockIdx.y * gridDim.x) * (blockDim.x * blockDim.y) +
-                   (threadIdx.y * blockDim.x) + threadIdx.x;
     for (int bounces = 0; bounces < 4; bounces++) {
         // iteration up to 4 bounces (instead of recursion in CPU code)
 
         float hitDistance = 1e20;
 
         Hit hit = ray.intersect(bvhCompact, false);
+        hitDistance = hit.distance;
+        trinormal = hit.noraml;
 
         if (hitDistance > 1e19) {
-            // if ray misses scene, return sky
-            // HDR environment map code based on Syntopia "Path tracing 3D fractals"
-            // http://blog.hvidtfeldts.net/index.php/2015/01/path-tracing-3d-fractals/
-            // https://github.com/Syntopia/Fragmentarium/blob/master/Fragmentarium-Source/Examples/Include/IBL-Pathtracer.frag
-            // GLSL code:
-            // vec3 equirectangularMap(sampler2D sampler, vec3 dir) {
-            //		dir = normalize(dir);
-            //		vec2 longlat = vec2(atan(dir.y, dir.x) + RotateMap, acos(dir.z));
-            //		return texture2D(sampler, longlat / vec2(2.0*PI, PI)).xyz; }
-
-            // Convert (normalized) dir to spherical coordinates.
-            float longlatX = atan2f(ray.direction.x, ray.direction.z);
-            // Y is up, swap x for y and z for x
-            longlatX = longlatX < 0.f ? longlatX + renderMeta->TWO_PI : longlatX;
-            // wrap around full circle if negative
-            float longlatY = acosf(ray.direction.y);
-            // add RotateMap at some point, see Fragmentarium
-
-            // map theta and phi to u and v texture coordinates in [0,1] x [0,1] range
-            float offsetY = 0.5f;
-            float u = longlatX / renderMeta->TWO_PI; // +offsetY;
-            float v = longlatY / renderMeta->PI;
-
-            // map u, v to integer coordinates
-            int u2 = (int) (u * renderMeta->hdrWidth);
-            int v2 = (int) (v * renderMeta->hdrHeight);
-
-            // compute the texture index in the HDR map
-            int hdrTextureIdx = u2 + v2 * renderMeta->hdrWidth;
-
-            float4 hdrColor = tex1Dfetch<float4>(hdrTexture, hdrTextureIdx);  // fetch from texture
-
-            Vec3f hdrColor3 = Vec3f(hdrColor.x, hdrColor.y, hdrColor.z);
-
-            emit = hdrColor3 * 2.0f;
+            emit = hdrEnv->sample(ray, renderMeta);
             accumulatedColor += (mask * emit);
             return accumulatedColor;
         }
+
+        // TRIANGLES:
+        hitpoint = ray.origin + ray.direction * hitDistance; // intersection point
+
+        n = trinormal;
+        n.normalize();
+        nl = dot(n, ray.direction) < 0 ? n : n * -1;  // correctly oriented normal
+        Vec3f colour = Vec3f(0.9f, 0.3f, 0.0f); // hardcoded triangle colour  .9f, 0.3f, 0.0f
+        refltype = COAT; // objectmaterial
+        objcol = colour;
+        emit = Vec3f(0.0, 0.0, 0);  // object emission
+        accumulatedColor += (mask * emit);
+
+
+        // COAT material based on https://github.com/peterkutz/GPUPathTracer
+        // randomly select diffuse or specular reflection
+        // looks okay-ish but inaccurate (no Fresnel calculation yet)
+        if (refltype == COAT) {
+
+            float rouletteRandomFloat = curand_uniform(randState);
+            float threshold = 0.05f;
+            Vec3f specularColor = Vec3f(1, 1, 1);  // hard-coded
+            bool reflectFromSurface = (rouletteRandomFloat <
+                                       threshold); //computeFresnel(make_Vec3f(n.x, n.y, n.z), incident, incidentIOR, transmittedIOR, reflectionDirection, transmissionDirection).reflectionCoefficient);
+
+            if (reflectFromSurface) { // calculate perfectly specular reflection
+
+                // Ray reflected from the surface. Trace a ray in the reflection direction.
+                // TODO: Use Russian roulette instead of simple multipliers!
+                // (Selecting between diffuse sample and no sample (absorption) in this case.)
+
+                mask *= specularColor;
+                nextdir = ray.direction - n * 2.0f * dot(n, ray.direction);
+                nextdir.normalize();
+
+                // offset origin next path segment to prevent self intersection
+                hitpoint += nl * 0.001f; // scene size dependent
+            } else {  // calculate perfectly diffuse reflection
+
+                float r1 = 2 * M_PI * curand_uniform(randState);
+                float r2 = curand_uniform(randState);
+                float r2s = sqrtf(r2);
+
+                // compute orthonormal coordinate frame uvw with hitpoint as origin
+                Vec3f w = nl;
+                w.normalize();
+                Vec3f u = cross((fabs(w.x) > .1 ? Vec3f(0, 1, 0) : Vec3f(1, 0, 0)), w);
+                u.normalize();
+                Vec3f v = cross(w, u);
+
+                // compute cosine weighted random ray direction on hemisphere
+                nextdir = u * cosf(r1) * r2s + v * sinf(r1) * r2s + w * sqrtf(1 - r2);
+                nextdir.normalize();
+
+                // offset origin next path segment to prevent self intersection
+                hitpoint += nl * 0.001f;  // // scene size dependent
+
+                // multiply mask with colour of object
+                mask *= objcol;
+            }
+        } // end COAT
+
+        // set up origin and direction of next path segment
+        ray.origin = hitpoint;
+        ray.direction = nextdir;
     }
+    return accumulatedColor;
 }
 
-__global__ void pathTracingKernel(Vec3f *outputBuffer, Vec3f *accumulatedBuffer, cudaTextureObject_t hdrTexture,
+__global__ void pathTracingKernel(Vec3f *outputBuffer, Vec3f *accumulatedBuffer, HDRImage *hdrEnv,
                                   RenderMeta *renderMeta, CameraMeta *cameraMeta, BVHCompact *bvhCompact) {
 
     // assign a CUDA thread to every pixel by using the threadIndex
@@ -174,7 +217,7 @@ __global__ void pathTracingKernel(Vec3f *outputBuffer, Vec3f *accumulatedBuffer,
         Vec3f originInWorldSpace = aperturePoint;
 
         Ray rayInWorldSpace(originInWorldSpace, directionInWorldSpace, ray_tmin, ray_tmax);
-        finalColor += renderKernel(&randState, hdrTexture, bvhCompact, rayInWorldSpace, renderMeta) *
+        finalColor += renderKernel(&randState, hdrEnv, bvhCompact, rayInWorldSpace, renderMeta) *
                       (1.0f / renderMeta->SAMPLES);
     }
 
@@ -207,9 +250,7 @@ void Renderer::render() {
     // copy the CPU rendering parameter to a GPU rendering parameter
     cudaMemcpy(renderMetaDevice, &renderMeta, sizeof(RenderMeta), cudaMemcpyHostToDevice);
 
-//    pathTracingKernel(outputBuffer, accumulatedBuffer, hdrEnv->hdrTexture, renderMetaDevice, cameraMetaDevice,
-//                      bvhCompact);
-    pathTracingKernel << < grid, block >> > (outputBuffer, accumulatedBuffer, hdrEnv->hdrTexture,
+    pathTracingKernel<<<grid, block>>>(outputBuffer, accumulatedBuffer, hdrEnv,
             renderMetaDevice, cameraMetaDevice, bvhCompact);
 }
 
