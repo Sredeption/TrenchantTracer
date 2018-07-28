@@ -7,7 +7,12 @@ Object *OBJLoader::load(std::string fileName) {
         throw std::runtime_error("ERROR: loading obj, file not found or not good");
 
     auto *object = new Object();
+
+    MaterialLoader materialLoader;
+
     Mesh *mesh = nullptr;
+    Group *group = nullptr;
+    MaterialPool *materialPool = nullptr;
     std::string line, key;
     while (!ifs.eof() && std::getline(ifs, line)) {
         key = "";
@@ -18,8 +23,25 @@ Object *OBJLoader::load(std::string fileName) {
             std::string name;
             lineStream >> name;
             mesh = new Mesh();
-            auto group = new Group(name, mesh);
+            group = new Group(name, mesh);
             object->addGroup(group);
+        } else if (key == "mtllib") {
+            std::string name;
+            std::string prefix;
+            lineStream >> name;
+            unsigned long index = fileName.find_last_of('/');
+            if (index != std::string::npos)
+                prefix = fileName.substr(0, index + 1);
+            materialPool = materialLoader.load(prefix + name);
+            object->setMaterialPool(materialPool);
+        } else if (key == "usemtl") {
+            std::string name;
+            lineStream >> name;
+            Material *material = materialPool->get(name);
+
+            if (material == nullptr)
+                throw std::runtime_error("Material " + name + " not found");
+            group->setMaterial(material);
         } else if (key == "v") { // vertex
             float x, y, z;
             while (!lineStream.eof()) {

@@ -5,43 +5,63 @@ Scene::Scene() = default;
 Scene::~Scene() = default;
 
 void Scene::add(Object *object) {
-    int base = this->vertices.getSize();
+    int vertexBase = this->vertices.getSize();
     Vertices *vertices = object->getVertices();
     this->vertices.add(vertices->getVertex());
+    Array<Material *> objectMaterials = object->getMaterialPool()->all();
+    auto materialBase = (U32) this->materials.getSize();
+    for (int i = 0; i < objectMaterials.getSize(); i++) {
+        objectMaterials[i]->index = materialBase + i;
+        this->materials.add(objectMaterials[i]);
+    }
 
     for (Group *group:object->getGroups()) {
         Array<Vec3i> vertexIndices = group->getMesh()->getVertexIndices();
         for (int i = 0; i < vertexIndices.getSize(); i++) {
-            this->vertexIndices.add(vertexIndices[i] + base);
+            this->vertexIndices.add(vertexIndices[i] + vertexBase);
+            this->materialIndices.add(group->getMaterial()->index);
         }
     }
 }
 
-int Scene::getNumTriangles() const {
+int Scene::getTrianglesNum() const {
     return vertexIndices.getSize();
 }
 
 const Vec3i *Scene::getTrianglePtr(int idx) {
-    FW_ASSERT(idx >= 0 && idx <= m_numTris);
-    return vertexIndices.getPtr() + idx;
+    if (0 <= idx && idx <= vertexIndices.getSize())
+        return vertexIndices.getPtr() + idx;
+    else
+        throw std::runtime_error("vertexIndices out of bound");
 }
 
 const Vec3i &Scene::getTriangle(int idx) {
-    FW_ASSERT(idx < m_numTris);
     return *getTrianglePtr(idx);
 }
 
-int Scene::getNumVertices() const {
+int Scene::getVerticesNum() const {
     return vertices.getSize();
 }
 
 const Vec3f *Scene::getVertexPtr(int idx) {
-    FW_ASSERT(idx >= 0 && idx <= m_numVerts);
-    return (const Vec3f *) vertices.getPtr() + idx;
+    if (0 <= idx && idx <= vertices.getSize())
+        return (const Vec3f *) vertices.getPtr() + idx;
+    else
+        throw std::runtime_error("vertices out of bound");
 }
 
 const Vec3f &Scene::getVertex(int idx) {
-    FW_ASSERT(idx < m_numVerts);
     return *getVertexPtr(idx);
+}
+
+const U32 *Scene::getMaterialIndexPtr(int idx) {
+    if (0 <= idx && idx <= materialIndices.getSize())
+        return (const U32 *) materialIndices.getPtr() + idx;
+    else
+        throw std::runtime_error("materialIndices out of bound");
+}
+
+const U32 &Scene::getMaterialIndex(int idx) {
+    return *getMaterialIndexPtr(idx);
 }
 

@@ -21,7 +21,9 @@ set(CUDA_SRC
         src/core/RenderKernel.cu
         src/geometry/IntersectKernel.cu
         src/core/HDRKernel.cu
-        )
+        src/material/Material.cu
+        src/material/Coat.cu
+        src/material/Diff.cu)
 
 CUDA_COMPILE(CUDA_O ${CUDA_SRC})
 
@@ -53,8 +55,8 @@ add_executable(TrenchantTracer
         include/core/Object.h
         src/geometry/Mesh.cpp
         include/geometry/Mesh.h
-        src/material/Material.cpp
-        include/material/Material.h
+        src/material/MaterialPool.cpp
+        include/material/MaterialPool.h
         src/core/Group.cpp
         include/core/Group.h
         src/geometry/Vertices.cpp
@@ -83,7 +85,13 @@ add_executable(TrenchantTracer
         include/bvh/BVHCompact.h
         include/geometry/Ray.h
         include/geometry/Hit.h
-        include/material/CoatMaterial.h)
+        include/material/Coat.h
+        include/material/Diff.h
+        src/loader/MaterialLoader.cpp
+        include/loader/MaterialLoader.h
+        src/material/MaterialCompact.cpp
+        include/material/MaterialCompact.h
+        include/material/Material.h)
 
 target_link_libraries(TrenchantTracer
         ${CUDA_LIBRARIES}

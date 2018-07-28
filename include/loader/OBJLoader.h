@@ -9,6 +9,7 @@
 
 #include <core/Object.h>
 #include <math/LinearMath.h>
+#include <loader/MaterialLoader.h>
 
 class OBJLoader {
 public:

@@ -4,7 +4,7 @@
 #include <curand_kernel.h>
 #include <math/CutilMath.h>
 #include <geometry/Ray.h>
-#include <material/CoatMaterial.h>
+#include <material/Coat.h>
 
 // union struct required for mapping pixel colours to OpenGL buffer
 union Color  // 4 bytes = 4 chars = 1 float
@@ -36,7 +36,7 @@ __device__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEnv,
         emit = Vec3f(0.0, 0.0, 0);  // object emission
         accumulatedColor += (mask * emit);
 
-        CoatMaterial coat;
+        Coat coat;
 
         ray = coat.sample(randState, ray, hit, mask);
 

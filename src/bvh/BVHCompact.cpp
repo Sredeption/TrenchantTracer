@@ -124,7 +124,7 @@ __host__ void BVHCompact::createCompact(const BVH &bvh, int nodeOffsetSizeDiv) {
 
             // index of a leaf node is a negative number, hence the ~
             childIndex[i] = ~triWoopData.getSize();
-            // leafs must be stored as negative (bitwise complement) in order to be recognised by pathtracer as a leaf
+            // leafs must be stored as negative (bitwise complement) in order to be recognised by path tracer as a leaf
 
             // for each triangle in leaf, range of triangle index j from m_lo to m_hi
             for (int j = leaf->lo; j < leaf->hi; j++) {
@@ -229,12 +229,12 @@ __host__ void BVHCompact::createCompact(const BVH &bvh, int nodeOffsetSizeDiv) {
     free(cpuTriIndices);
 }
 
-__host__ void BVHCompact::woopifyTri(const BVH &bvh, int idx, Vec4f *woopTri, Vec4f *debugTri) {
+__host__ void BVHCompact::woopifyTri(const BVH &bvh, int triIdx, Vec4f *woopTri, Vec4f *debugTri) {
     // fetch the 3 vertex indices of this triangle
-    const Vec3i &vtxInds = bvh.getScene()->getTriangle(bvh.getTriIndices()[idx]);
-    const Vec3f &v0 = bvh.getScene()->getVertex(vtxInds.x);
-    const Vec3f &v1 = bvh.getScene()->getVertex(vtxInds.y);
-    const Vec3f &v2 = bvh.getScene()->getVertex(vtxInds.z);
+    const Vec3i &vertexIndex = bvh.getScene()->getTriangle(bvh.getTriIndices()[triIdx]);
+    const Vec3f &v0 = bvh.getScene()->getVertex(vertexIndex.x);
+    const Vec3f &v1 = bvh.getScene()->getVertex(vertexIndex.y);
+    const Vec3f &v2 = bvh.getScene()->getVertex(vertexIndex.z);
 
     // regular triangles (for debugging only)
     debugTri[0] = Vec4f(v0.x, v0.y, v0.z, 0.0f);

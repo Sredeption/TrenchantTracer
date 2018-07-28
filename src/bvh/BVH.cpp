@@ -6,18 +6,18 @@ BVH::BVH(Scene *scene, const SAHHelper &sahHelper, float splitAlpha) {
     this->sahHelper = sahHelper;
 
     printf("BVH builder: %d tris, %d vertices, split: %f\n",
-           scene->getNumTriangles(), scene->getNumVertices(), splitAlpha);
+           scene->getTrianglesNum(), scene->getVerticesNum(), splitAlpha);
 
     //  builds the actual BVH
 
     // See SBVH paper by Martin Stich for details
 
     // Initialize reference stack and determine root bounds.
-    const Vec3i *tris = scene->getTrianglePtr(); // list of all triangles in scene
-    const Vec3f *verts = scene->getVertexPtr();  // list of all vertices in scene
+    const Vec3i *triangles = scene->getTrianglePtr(); // list of all triangles in scene
+    const Vec3f *vertices = scene->getVertexPtr();  // list of all vertices in scene
 
     NodeSpec rootSpec;
-    rootSpec.numRef = scene->getNumTriangles();  // number of triangles/references in entire scene (root)
+    rootSpec.numRef = scene->getTrianglesNum();  // number of triangles/references in entire scene (root)
     refStack.resize(rootSpec.numRef);
 
     // calculate the bounds of the rootnode by merging the AABBs of all the references
@@ -25,8 +25,8 @@ BVH::BVH(Scene *scene, const SAHHelper &sahHelper, float splitAlpha) {
         // assign triangle to the array of references
         refStack[i].triIdx = i;
         // grow the bounds of each reference AABB in all 3 dimensions by including the vertex
-        for (int j : tris[i]._v)
-            refStack[i].bounds.grow(verts[j]);
+        for (int j : triangles[i]._v)
+            refStack[i].bounds.grow(vertices[j]);
         rootSpec.bounds.grow(refStack[i].bounds);
 
     }
@@ -43,7 +43,7 @@ BVH::BVH(Scene *scene, const SAHHelper &sahHelper, float splitAlpha) {
 
     // Done.
     printf("BVH Builder: progress %.0f%%, duplicates %.5f%%\n",
-           100.0f, (F32) numDuplicates / (F32) scene->getNumTriangles() * 100.0f);
+           100.0f, (F32) numDuplicates / (F32) scene->getTrianglesNum() * 100.0f);
 
     printf("BVH Scene bounds: (%.1f,%.1f,%.1f) - (%.1f,%.1f,%.1f)\n", root->bounding.min().x,
            root->bounding.min().y, root->bounding.min().z,

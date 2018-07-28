@@ -8,11 +8,13 @@
 
 #include <core/Group.h>
 #include <geometry/Vertices.h>
+#include <material/MaterialPool.h>
 
 class Object {
 private:
     Vertices *vertices;
     std::vector<Group *> groups;
+    MaterialPool *pool;
 
 public:
     Object();
@@ -21,9 +23,13 @@ public:
 
     void addVertex(Vec3f vertex);
 
-    void addGroup(Group * group);
+    void addGroup(Group *group);
 
-    Vertices* getVertices();
+    void setMaterialPool(MaterialPool *pool);
+
+    MaterialPool *getMaterialPool();
+
+    Vertices *getVertices();
 
     std::vector<Group *> getGroups();
 

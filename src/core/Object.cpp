@@ -6,6 +6,7 @@ Object::Object() {
 
 Object::~Object() {
     delete this->vertices;
+    delete this->pool;
     for (Group *group: this->groups) {
         delete group;
     }
@@ -17,6 +18,14 @@ void Object::addVertex(Vec3f vertex) {
 
 void Object::addGroup(Group *group) {
     this->groups.push_back(group);
+}
+
+void Object::setMaterialPool(MaterialPool *pool) {
+    this->pool = pool;
+}
+
+MaterialPool *Object::getMaterialPool() {
+    return this->pool;
 }
 
 Vertices *Object::getVertices() {

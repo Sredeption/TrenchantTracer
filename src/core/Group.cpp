@@ -12,3 +12,11 @@ Group::Group(std::string name, Mesh *mesh) :
 Mesh *Group::getMesh() {
     return mesh;
 }
+
+void Group::setMaterial(Material *material) {
+    this->material = material;
+}
+
+Material *Group::getMaterial() {
+    return this->material;
+}

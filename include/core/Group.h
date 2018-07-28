@@ -20,6 +20,10 @@ public:
     Group(std::string name, Mesh *mesh);
 
     Mesh *getMesh();
+
+    void setMaterial(Material *material);
+
+    Material* getMaterial();
 };
 
 
