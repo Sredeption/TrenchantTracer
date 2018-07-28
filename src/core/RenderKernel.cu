@@ -4,6 +4,7 @@
 #include <curand_kernel.h>
 #include <math/CutilMath.h>
 #include <geometry/Ray.h>
+#include <material/CoatMaterial.h>
 
 // union struct required for mapping pixel colours to OpenGL buffer
 union Color  // 4 bytes = 4 chars = 1 float
@@ -12,104 +13,33 @@ union Color  // 4 bytes = 4 chars = 1 float
     uchar4 components;
 };
 
-enum Refl_t {
-    DIFF, METAL, SPEC, REFR, COAT
-};  // material types
-
 __device__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEnv,
                               BVHCompact *bvhCompact, Ray ray, RenderMeta *renderMeta) {
 
     Vec3f mask = Vec3f(1.0f, 1.0f, 1.0f); // colour mask
     Vec3f accumulatedColor = Vec3f(0.0f, 0.0f, 0.0f); // accumulated colour
-    Vec3f direct = Vec3f(0, 0, 0);
     Vec3f emit;
-    Vec3f n; // normal
-    Vec3f nl; // oriented normal
-    Vec3f hitpoint; // intersection point
-    Vec3f trinormal;
-    Refl_t refltype;
-    Vec3f objcol;
-    Vec3f nextdir; // ray direction of next path segment
 
     for (int bounces = 0; bounces < 4; bounces++) {
         // iteration up to 4 bounces (instead of recursion in CPU code)
 
-        float hitDistance = 1e20;
 
         Hit hit = ray.intersect(bvhCompact, false);
-        hitDistance = hit.distance;
-        trinormal = hit.noraml;
 
-        if (hitDistance > 1e19) {
+        if (hit.distance > 1e19) {
             emit = hdrEnv->sample(ray, renderMeta);
             accumulatedColor += (mask * emit);
             return accumulatedColor;
         }
 
         // TRIANGLES:
-        hitpoint = ray.origin + ray.direction * hitDistance; // intersection point
-
-        n = trinormal;
-        n.normalize();
-        nl = dot(n, ray.direction) < 0 ? n : n * -1;  // correctly oriented normal
-        Vec3f colour = Vec3f(0.9f, 0.3f, 0.0f); // hardcoded triangle colour  .9f, 0.3f, 0.0f
-        refltype = COAT; // objectmaterial
-        objcol = colour;
         emit = Vec3f(0.0, 0.0, 0);  // object emission
         accumulatedColor += (mask * emit);
 
+        CoatMaterial coat;
 
-        // COAT material based on https://github.com/peterkutz/GPUPathTracer
-        // randomly select diffuse or specular reflection
-        // looks okay-ish but inaccurate (no Fresnel calculation yet)
-        if (refltype == COAT) {
+        ray = coat.sample(randState, ray, hit, mask);
 
-            float rouletteRandomFloat = curand_uniform(randState);
-            float threshold = 0.05f;
-            Vec3f specularColor = Vec3f(1, 1, 1);  // hard-coded
-            bool reflectFromSurface = (rouletteRandomFloat <
-                                       threshold); //computeFresnel(make_Vec3f(n.x, n.y, n.z), incident, incidentIOR, transmittedIOR, reflectionDirection, transmissionDirection).reflectionCoefficient);
-
-            if (reflectFromSurface) { // calculate perfectly specular reflection
-
-                // Ray reflected from the surface. Trace a ray in the reflection direction.
-                // TODO: Use Russian roulette instead of simple multipliers!
-                // (Selecting between diffuse sample and no sample (absorption) in this case.)
-
-                mask *= specularColor;
-                nextdir = ray.direction - n * 2.0f * dot(n, ray.direction);
-                nextdir.normalize();
-
-                // offset origin next path segment to prevent self intersection
-                hitpoint += nl * 0.001f; // scene size dependent
-            } else {  // calculate perfectly diffuse reflection
-
-                float r1 = 2 * M_PI * curand_uniform(randState);
-                float r2 = curand_uniform(randState);
-                float r2s = sqrtf(r2);
-
-                // compute orthonormal coordinate frame uvw with hitpoint as origin
-                Vec3f w = nl;
-                w.normalize();
-                Vec3f u = cross((fabs(w.x) > .1 ? Vec3f(0, 1, 0) : Vec3f(1, 0, 0)), w);
-                u.normalize();
-                Vec3f v = cross(w, u);
-
-                // compute cosine weighted random ray direction on hemisphere
-                nextdir = u * cosf(r1) * r2s + v * sinf(r1) * r2s + w * sqrtf(1 - r2);
-                nextdir.normalize();
-
-                // offset origin next path segment to prevent self intersection
-                hitpoint += nl * 0.001f;  // // scene size dependent
-
-                // multiply mask with colour of object
-                mask *= objcol;
-            }
-        } // end COAT
-
-        // set up origin and direction of next path segment
-        ray.origin = hitpoint;
-        ray.direction = nextdir;
     }
     return accumulatedColor;
 }
@@ -250,7 +180,7 @@ void Renderer::render() {
     // copy the CPU rendering parameter to a GPU rendering parameter
     cudaMemcpy(renderMetaDevice, &renderMeta, sizeof(RenderMeta), cudaMemcpyHostToDevice);
 
-    pathTracingKernel<<<grid, block>>>(outputBuffer, accumulatedBuffer, hdrEnv,
+    pathTracingKernel << < grid, block >> > (outputBuffer, accumulatedBuffer, hdrEnv,
             renderMetaDevice, cameraMetaDevice, bvhCompact);
 }
 

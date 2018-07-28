@@ -1,4 +1,5 @@
 #include <geometry/Ray.h>
+
 #include <cuda_runtime.h>
 
 //  RAY BOX INTERSECTION ROUTINES
@@ -76,7 +77,7 @@ spanEndKepler2(float lo_x, float hi_x, float lo_y, float hi_y, float lo_z, float
 
     Vec3f realmax = max3f(t0, t1);
 
-    float raybox_tmax = realmax.min(); /// minmax
+    float raybox_tmax = realmax.min(); // minmax
 
     //return Vec2f(tmin, tmax);
     return raybox_tmax;
@@ -86,6 +87,16 @@ __device__ __inline__ void swap2(int &a, int &b) {
     int temp = a;
     a = b;
     b = temp;
+}
+
+__device__ __inline__ void normalize(Hit &hit, const Ray *ray) {
+    hit.n = hit.normal;
+    hit.n.normalize();
+    hit.nl = dot(hit.n, ray->direction) < 0 ? hit.n : hit.n * -1;  // correctly oriented normal
+}
+
+__device__ __inline__ void hitPoint(Hit &hit, const Ray *ray) {
+    hit.point = ray->origin + ray->direction * hit.distance; // intersection point
 }
 
 __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
@@ -242,7 +253,7 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
                     // if there is a miss, t will be larger than hitT (ray.tmax)
                     hit.index = triAddr;
                     hit.distance = t;  // keeps track of closest hitpoint
-                    hit.noraml = cross(v0 - v1, v0 - v2);
+                    hit.normal = cross(v0 - v1, v0 - v2);
 
                     if (!needClosestHit) {
                         // shadow rays only require "any" hit with scene geometry, not the closest one
@@ -269,6 +280,9 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
         // (slow global memory lookup in de gpuTriIndices array) because multiple triangles per node can potentially be hit
         hit.index = bvh->triIndices[hit.index].x;
     }
+
+    normalize(hit, this);
+    hitPoint(hit, this);
 
     return hit;
 }

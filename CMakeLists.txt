@@ -18,8 +18,6 @@ include_directories(include)
 include_directories(lib/include)
 
 set(CUDA_SRC
-        src/geometry/Ray.cu
-        src/geometry/Hit.cu
         src/core/RenderKernel.cu
         src/geometry/IntersectKernel.cu
         src/core/HDRKernel.cu
@@ -29,7 +27,6 @@ CUDA_COMPILE(CUDA_O ${CUDA_SRC})
 
 add_executable(TrenchantTracer
         ${CUDA_O}
-        include/geometry/Ray.h
         src/main.cpp
         src/core/Camera.cpp
         include/core/Camera.h
@@ -84,7 +81,9 @@ add_executable(TrenchantTracer
         include/loader/SceneLoader.h
         src/bvh/BVHCompact.cpp
         include/bvh/BVHCompact.h
-        include/geometry/Hit.h)
+        include/geometry/Ray.h
+        include/geometry/Hit.h
+        include/material/CoatMaterial.h)
 
 target_link_libraries(TrenchantTracer
         ${CUDA_LIBRARIES}
