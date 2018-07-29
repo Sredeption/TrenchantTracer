@@ -43,7 +43,8 @@ int main(int argc, char **argv) {
     FILE *bvhFile = nullptr;
     bvhFile = fopen(bvhFileName.c_str(), "rb");
     FILE *matFile = nullptr;
-//    matFile = fopen(matFileName.c_str(), "rb");
+    if (!config->materialReload)
+        matFile = fopen(matFileName.c_str(), "rb");
 
     BVHCompact *bvhCompact;
     MaterialCompact *materialCompact;
@@ -52,16 +53,25 @@ int main(int argc, char **argv) {
         SceneLoader sceneLoader(config);
         Scene *scene = sceneLoader.load();
 
-        materialCompact = new MaterialCompact(scene);
-        materialCompact->save(matFileName);
+        if (!matFile) {
+            materialCompact = new MaterialCompact(scene);
+            materialCompact->save(matFileName);
+        } else {
+            materialCompact = new MaterialCompact(matFile);
+        }
 
-        SAHHelper sahHelper;
-        auto bvh = new BVH(scene, sahHelper);
-        bvhCompact = bvh->createHolder();
-        bvhCompact->save(bvhFileName);
+        if (!bvhFile) {
+            SAHHelper sahHelper;
+            auto bvh = new BVH(scene, sahHelper);
+            bvhCompact = bvh->createHolder();
+            bvhCompact->save(bvhFileName);
+
+            delete bvh;
+        } else {
+            bvhCompact = new BVHCompact(bvhFile);
+        }
 
         delete scene;
-        delete bvh;
     } else {
         bvhCompact = new BVHCompact(bvhFile);
         materialCompact = new MaterialCompact(matFile);

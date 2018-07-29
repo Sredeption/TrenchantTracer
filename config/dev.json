@@ -3,5 +3,6 @@
   "height": 720,
   "samples": 1,
   "hdr-file-name": "data/Topanga_Forest_B_3k.hdr",
-  "obj-file-name": "data/dragon.obj"
+  "obj-file-name": "data/dragon.obj",
+  "material-reload": true
 }

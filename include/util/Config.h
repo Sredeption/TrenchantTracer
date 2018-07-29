@@ -15,6 +15,7 @@ public:
     std::string hdrFileName;
     std::string objFileName;
     int samples;
+    bool materialReload;
 
     explicit Config(std::string fileName);
 };

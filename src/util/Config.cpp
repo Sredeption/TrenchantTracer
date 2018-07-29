@@ -12,6 +12,7 @@ Config::Config(std::string fileName) {
     hdrFileName = config.at("hdr-file-name").get<std::string>();
     objFileName = config.at("obj-file-name").get<std::string>();
     samples = config.at("samples").get<int>();
+    materialReload= config.at("material-reload").get<bool>();
 
     ifs.close();
 }
