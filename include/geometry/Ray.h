@@ -1,7 +1,7 @@
 #ifndef TRENCHANTTRACER_RAY_H
 #define TRENCHANTTRACER_RAY_H
 
-#include <host_defines.h>
+#include <cuda_runtime.h>
 
 #include <geometry/Hit.h>
 #include <math/LinearMath.h>

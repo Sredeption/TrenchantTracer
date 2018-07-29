@@ -285,7 +285,7 @@ __host__ void BVHCompact::createTexture() {
     memset(&resDesc, 0, sizeof(resDesc));
     resDesc.resType = cudaResourceTypeLinear;
     resDesc.res.linear.devPtr = nodes;
-    resDesc.res.linear.desc.f = cudaChannelFormatKindSigned;
+    resDesc.res.linear.desc.f = cudaChannelFormatKindFloat;
     resDesc.res.linear.desc.x = 32; // r-channel bits
     resDesc.res.linear.desc.y = 32; // g-channel bits
     resDesc.res.linear.desc.z = 32; // b-channel bits

@@ -1,6 +1,5 @@
 #include <geometry/Ray.h>
 
-#include <cuda_runtime.h>
 
 //  RAY BOX INTERSECTION ROUTINES
 
@@ -53,36 +52,6 @@ __device__ __inline__ float spanEndKepler(float a0, float a1, float b0, float b1
     return fmin_fmin(fmaxf(a0, a1), fmaxf(b0, b1), fmax_fmin(c0, c1, d));
 }
 
-// standard ray box intersection routines (for debugging purposes only)
-// based on Intersect::RayBox() in original Aila/Laine code
-__device__ __inline__ float
-spanBeginKepler2(float lo_x, float hi_x, float lo_y, float hi_y, float lo_z, float hi_z, float d) {
-
-    Vec3f t0 = Vec3f(lo_x, lo_y, lo_z);
-    Vec3f t1 = Vec3f(hi_x, hi_y, hi_z);
-
-    Vec3f realmin = min3f(t0, t1);
-
-    float raybox_tmin = realmin.max(); // maxmin
-
-    //return Vec2f(tmin, tmax);
-    return raybox_tmin;
-}
-
-__device__ __inline__ float
-spanEndKepler2(float lo_x, float hi_x, float lo_y, float hi_y, float lo_z, float hi_z, float d) {
-
-    Vec3f t0 = Vec3f(lo_x, lo_y, lo_z);
-    Vec3f t1 = Vec3f(hi_x, hi_y, hi_z);
-
-    Vec3f realmax = max3f(t0, t1);
-
-    float raybox_tmax = realmax.min(); // minmax
-
-    //return Vec2f(tmin, tmax);
-    return raybox_tmax;
-}
-
 __device__ __inline__ void swap2(int &a, int &b) {
     int temp = a;
     a = b;
@@ -131,13 +100,17 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
         // Traverse internal nodes until all SIMD lanes have found a leaf.
 
         while (nodeAddr >= 0 && nodeAddr != EntrypointSentinel) {
-            float4 *ptr = bvh->nodes + nodeAddr;
-            float4 n0xy = ptr[0]; // childnode 0, xy-bounds (c0.lo.x, c0.hi.x, c0.lo.y, c0.hi.y)
-            float4 n1xy = ptr[1]; // childnode 1. xy-bounds (c1.lo.x, c1.hi.x, c1.lo.y, c1.hi.y)
-            float4 nz = ptr[2]; // childnodes 0 and 1, z-bounds(c0.lo.z, c0.hi.z, c1.lo.z, c1.hi.z)
+            float4 n0xy = tex1Dfetch<float4>(bvh->nodesTexture, nodeAddr);
+            // child node 0, xy-bounds (c0.lo.x, c0.hi.x, c0.lo.y, c0.hi.y)
+            float4 n1xy = tex1Dfetch<float4>(bvh->nodesTexture, nodeAddr + 1);
+            // child node 1. xy-bounds (c1.lo.x, c1.hi.x, c1.lo.y, c1.hi.y)
+            float4 nz = tex1Dfetch<float4>(bvh->nodesTexture, nodeAddr + 2);
+            // child nodes 0 and 1, z-bounds(c0.lo.z, c0.hi.z, c1.lo.z, c1.hi.z)
+            float4 tmp = tex1Dfetch<float4>(bvh->nodesTexture, nodeAddr + 3);
+            // contains indices to 2 child nodes in case of inner node, see below
 
-            // ptr[3] contains indices to 2 childnodes in case of innernode, see below
-            // (childindex = size of array during building, see CudaBVH.cpp)
+            // ptr[3] contains indices to 2 child nodes in case of inner node, see below
+            // (child index = size of array during building, see CudaBVH.cpp)
 
             // compute ray intersections with BVH node bounding box
             float c0lox = n0xy.x * idirx - oodx; // n0xy.x = c0.lo.x, child 0 min bound x
@@ -148,16 +121,16 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
             float c0hiz = nz.y * idirz - oodz; // nz.y   = c0.hi.z, child 0 max bound z
             float c1loz = nz.z * idirz - oodz; // nz.z   = c1.lo.z, child 1 min bound z
             float c1hiz = nz.w * idirz - oodz; // nz.w   = c1.hi.z, child 1 max bound z
-            float c0min = spanBeginKepler2(c0lox, c0hix, c0loy, c0hiy, c0loz, c0hiz, tMin);
+            float c0min = spanBeginKepler(c0lox, c0hix, c0loy, c0hiy, c0loz, c0hiz, tMin);
             // Tesla does max4(min, min, min, tmin)
-            float c0max = spanEndKepler2(c0lox, c0hix, c0loy, c0hiy, c0loz, c0hiz, hit.distance);
+            float c0max = spanEndKepler(c0lox, c0hix, c0loy, c0hiy, c0loz, c0hiz, hit.distance);
             // Tesla does min4(max, max, max, tmax)
             float c1lox = n1xy.x * idirx - oodx; // n1xy.x = c1.lo.x, child 1 min bound x
             float c1hix = n1xy.y * idirx - oodx; // n1xy.y = c1.hi.x, child 1 max bound x
             float c1loy = n1xy.z * idiry - oody; // n1xy.z = c1.lo.y, child 1 min bound y
             float c1hiy = n1xy.w * idiry - oody; // n1xy.w = c1.hi.y, child 1 max bound y
-            float c1min = spanBeginKepler2(c1lox, c1hix, c1loy, c1hiy, c1loz, c1hiz, tMin);
-            float c1max = spanEndKepler2(c1lox, c1hix, c1loy, c1hiy, c1loz, c1hiz, hit.distance);
+            float c1min = spanBeginKepler(c1lox, c1hix, c1loy, c1hiy, c1loz, c1hiz, tMin);
+            float c1max = spanEndKepler(c1lox, c1hix, c1loy, c1hiy, c1loz, c1hiz, hit.distance);
 
             float ray_tmax = 1e20;
             bool traverseChild0 = (c0min <= c0max) && (c0min >= tMin) && (c0min <= ray_tmax);
@@ -169,17 +142,17 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
             } else {
                 // Otherwise => fetch child pointers.
                 // one or both children intersected
-                int2 cnodes = *(int2 *) &ptr[3];
+                int2 childNodes = *(int2 *) &tmp; // cast first two floats to int
                 // set nodeAddr equal to intersected childnode (first childnode when both children are intersected)
-                nodeAddr = (traverseChild0) ? cnodes.x : cnodes.y;
+                nodeAddr = (traverseChild0) ? childNodes.x : childNodes.y;
 
                 // Both children were intersected => push the farther one on the stack.
                 if (traverseChild0 && traverseChild1) {
                     // store closest child in nodeAddr, swap if necessary
                     if (c1min < c0min)
-                        swap2(nodeAddr, cnodes.y);
+                        swap2(nodeAddr, childNodes.y);
                     stackPtr += 4;  // pushing increments stack by 4 bytes (stackPtr is a pointer to char)
-                    *(int *) stackPtr = cnodes.y; // push furthest node on the stack
+                    *(int *) stackPtr = childNodes.y; // push furthest node on the stack
                 }
             }
 

@@ -28,13 +28,16 @@ Renderer::Renderer(Config *config, BVHCompact *bvhCompact, MaterialCompact *mate
     // allocate GPU memory for rendering parameter
     cudaMalloc(&renderMetaDevice, sizeof(RenderMeta));
 
-    // initialize HDR meta data
+    // initialize meta data
     renderMeta.frameNumber = 0;
 
     // initialize constants
     renderMeta.SAMPLES = config->samples;
     renderMeta.PI = Renderer::PI;
     renderMeta.TWO_PI = Renderer::TWO_PI;
+
+    // initialize statistics
+    traceCount = 0;
 
     //Create vertex buffer object
     glGenBuffers(1, &vbo);
@@ -72,6 +75,10 @@ Renderer *Renderer::getInstance() {
 }
 
 void Renderer::display(Controller *controller) {
+    if (traceCount == 0)
+        startTime = std::clock();
+    traceCount++;
+
     if (controller->bufferReset) {
         cudaMemset(accumulatedBuffer, 1, config->width * config->height * sizeof(Vec3f));
         renderMeta.frameNumber = 0;
@@ -94,10 +101,12 @@ void Renderer::display(Controller *controller) {
     // calculate a new seed for the random number generator, based on the frameNumber
     renderMeta.hashedFrame = WangHash::encode(static_cast<unsigned int>(renderMeta.frameNumber));
 
+
     // gateway from host to CUDA, passes all data needed to render frame (triangles, BVH tree, camera) to CUDA for execution
     this->render();
 
     cudaThreadSynchronize();
+
     cudaGLUnmapBufferObject(vbo);
     glFlush();
     glFinish();
@@ -111,4 +120,10 @@ void Renderer::display(Controller *controller) {
     glDisableClientState(GL_VERTEX_ARRAY);
 
     glutSwapBuffers();
+    if (traceCount == 100) {
+        const clock_t endTime = std::clock();
+        printf("%f ms per frame\n", float(endTime - startTime) * 1000 / CLOCKS_PER_SEC / traceCount);
+        traceCount = 0;
+    }
+
 }

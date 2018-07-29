@@ -48,6 +48,9 @@ private:
     MaterialCompact *materialCompact; //device memory
     HDRImage *hdrEnv;
 
+    int traceCount;
+    clock_t startTime;
+
     void render();
 
 public:
