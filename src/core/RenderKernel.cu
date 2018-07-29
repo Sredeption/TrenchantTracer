@@ -27,8 +27,6 @@ __device__ __inline__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEn
 
     for (int bounces = 0; bounces < 4; bounces++) {
         // iteration up to 4 bounces (instead of recursion in CPU code)
-
-
         Hit hit = ray.intersect(bvhCompact, true);
 
         if (hit.distance > 1e19) {
@@ -94,11 +92,6 @@ __global__ void pathTracingKernel(Vec3f *outputBuffer, Vec3f *accumulatedBuffer,
     int pixelX = x; // pixel x-coordinate on screen
     int pixelY = height - y - 1; // pixel y-coordinate on screen
 
-    Vec3f camDir = Vec3f(0, -0.042612f, -1);
-    camDir.normalize();
-    Vec3f cx = Vec3f(width * .5135f / height, 0.0f, 0.0f);  // ray direction offset along X-axis
-    Vec3f cy = (cross(cx, camDir)).normalize() * .5135f; // ray dir offset along Y-axis, .5135 is FOV angle
-
     for (int s = 0; s < renderMeta->SAMPLES; s++) {
         // compute primary ray direction
         // use camera view of current frame (transformed on CPU side) to create local orthonormal basis
@@ -130,8 +123,8 @@ __global__ void pathTracingKernel(Vec3f *outputBuffer, Vec3f *accumulatedBuffer,
 
         // compute pixel on screen
         Vec3f pointOnPlaneOneUnitAwayFromEye = middle + (horizontal * ((2 * sx) - 1)) + (vertical * ((2 * sy) - 1));
-        Vec3f pointOnImagePlane =
-                cameraPosition + ((pointOnPlaneOneUnitAwayFromEye - cameraPosition) * cameraMeta->focalDistance);
+        Vec3f pointOnImagePlane = cameraPosition +
+                                  ((pointOnPlaneOneUnitAwayFromEye - cameraPosition) * cameraMeta->focalDistance);
         // Important for depth of field!
 
         // calculation of depth of field / camera aperture

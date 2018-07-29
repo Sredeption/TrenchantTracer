@@ -1,0 +1,8 @@
+{
+  "width": 1280,
+  "height": 720,
+  "samples": 1,
+  "hdr-file-name": "data/Topanga_Forest_B_3k.hdr",
+  "obj-file-name": "data/maserati/car3.obj",
+  "material-reload": true
+}

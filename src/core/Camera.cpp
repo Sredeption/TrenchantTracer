@@ -77,21 +77,17 @@ void Camera::setResolution(int x, int y) {
 }
 
 float Camera::radiansToDegrees(float radians) {
-    auto degrees = static_cast<float>(radians * 180.0 / Camera::PI);
-    return degrees;
+    return radians * 180.0f / Camera::PI;
 }
 
 float Camera::degreesToRadians(float degrees) {
-    auto radians = static_cast<float>(degrees / 180.0 * Camera::PI);
-    return radians;
+    return degrees / 180.0f * Camera::PI;
 }
 
 void Camera::setFovx(float fovx) {
-    fov.x = fovx;
-    fov.y = radiansToDegrees(
-            static_cast<float>(std::atan(std::tan(degreesToRadians(fovx) * 0.5) * (resolution.y / resolution.x)) *
-                               2.0));
     // resolution float division
+    fov.x = fovx;
+    fov.y = radiansToDegrees(std::atan(std::tan(degreesToRadians(fovx) * 0.5f) * resolution.y / resolution.x) * 2.0f);
 }
 
 CameraMeta Camera::getCameraMeta() {
