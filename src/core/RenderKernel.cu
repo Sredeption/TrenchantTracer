@@ -25,7 +25,7 @@ __device__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEnv,
         // iteration up to 4 bounces (instead of recursion in CPU code)
 
 
-        Hit hit = ray.intersect(bvhCompact, false);
+        Hit hit = ray.intersect(bvhCompact, true);
 
         if (hit.distance > 1e19) {
             emit = hdrEnv->sample(ray, renderMeta);

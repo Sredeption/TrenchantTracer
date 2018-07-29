@@ -198,41 +198,62 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
         ///////////////////////////////////////
         while (leafAddr < 0) {
             // if leafAddr is negative, it points to an actual leafnode (when positive or 0 it's an innernode
-            // leafAddr is stored as negative number, see cidx[i] = ~triWoopData.getSize(); in CudaBVH.cpp
-            int leafCount = 0;
+
+            // Intersect the ray against each triangle using Sven Woop's algorithm.
+            // Woop ray triangle intersection: Woop triangles are unit triangles. Each ray
+            // must be transformed to "unit triangle space", before testing for intersection
             for (int triAddr = ~leafAddr;; triAddr += 3) {
-                leafCount++;
                 // no defined upper limit for loop, continues until leaf terminator code 0x80000000 is encountered
 
                 // Read first 16 bytes of the triangle.
-                // fetch first triangle vertex
-                float4 v0f = bvh->debugTri[triAddr + 0];
+                // fetch first precomputed triangle edge
+                float4 v00 = tex1Dfetch<float4>(bvh->woopTriTexture, triAddr);
 
                 // End marker 0x80000000 (= negative zero) => all triangles in leaf processed. --> terminate
-                if (__float_as_int(v0f.x) == 0x80000000) break;
+                if (__float_as_int(v00.x) == 0x80000000) break;
 
-                float4 v1f = bvh->debugTri[triAddr + 1];
-                float4 v2f = bvh->debugTri[triAddr + 2];
+                // Compute and check intersection t-value (hit distance along ray).
+                // Origin z
+                float Oz = v00.w - origin.x * v00.x - origin.y * v00.y - origin.z * v00.z;
+                // inverse Direction z
+                float invDz = 1.0f / (direction.x * v00.x + direction.y * v00.y + direction.z * v00.z);
+                float t = Oz * invDz;
 
-                const Vec3f v0 = Vec3f(v0f.x, v0f.y, v0f.z);
-                const Vec3f v1 = Vec3f(v1f.x, v1f.y, v1f.z);
-                const Vec3f v2 = Vec3f(v2f.x, v2f.y, v2f.z);
-
-                // convert float4 to Vec4f
-                Vec3f bary = intersect(v0, v1, v2);
-
-                float t = bary.z; // hit distance along ray
                 if (tMin < t && t < hit.distance) {
-                    // if there is a miss, t will be larger than hitT (ray.tmax)
-                    hit.index = triAddr;
-                    hit.distance = t;  // keeps track of closest hitpoint
-                    hit.normal = cross(v0 - v1, v0 - v2);
+                    // Compute and check barycentric u.
 
-                    if (!needClosestHit) {
-                        // shadow rays only require "any" hit with scene geometry, not the closest one
-                        nodeAddr = EntrypointSentinel;
-                        break;
+                    // fetch second precomputed triangle edge
+                    float4 v11 = tex1Dfetch<float4>(bvh->woopTriTexture, triAddr + 1);
+                    float Ox = v11.w + origin.x * v11.x + origin.y * v11.y + origin.z * v11.z;  // Origin.x
+                    float Dx = direction.x * v11.x + direction.y * v11.y + direction.z * v11.z;  // Direction.x
+                    float u = Ox + t * Dx; // parametric equation of a ray (intersection point)
+
+                    if (u >= 0.0f && u <= 1.0f) {
+                        // Compute and check barycentric v.
+                        // fetch third precomputed triangle edge
+                        float4 v22 = tex1Dfetch<float4>(bvh->woopTriTexture, triAddr + 2);
+                        float Oy = v22.w + origin.x * v22.x + origin.y * v22.y + origin.z * v22.z;
+                        float Dy = direction.x * v22.x + direction.y * v22.y + direction.z * v22.z;
+                        float v = Oy + t * Dy;
+
+                        if (v >= 0.0f && u + v <= 1.0f) {
+                            // We've got a hit!
+                            // Record intersection.
+                            hit.distance = t;
+                            hit.index = triAddr; // store triangle index for shading
+
+                            // compute normal vector by taking the cross product of two edge vectors
+                            // because of Woop transformation, only one set of vectors works
+                            hit.normal = cross(Vec3f(v11.x, v11.y, v11.z), Vec3f(v22.x, v22.y, v22.z));
+
+                            if (!needClosestHit) {
+                                // shadow rays only require "any" hit with scene geometry, not the closest one
+                                nodeAddr = EntrypointSentinel;
+                                break;
+                            }
+                        }
                     }
+
                 }
             } // triangle
 
@@ -251,55 +272,13 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
     if (hit.index != -1) {
         // remapping tri indices delayed until this point for performance reasons
         // (slow global memory lookup in de gpuTriIndices array) because multiple triangles per node can potentially be hit
-        hit.matIndex = bvh->matIndices[hit.index].x;
-        hit.index = bvh->triIndices[hit.index].x;
+        hit.matIndex = tex1Dfetch<int>(bvh->matIndicesTexture, hit.index);
+        hit.index = tex1Dfetch<int>(bvh->triIndicesTexture, hit.index);
     }
 
     normalize(hit, this);
     hitPoint(hit, this);
 
     return hit;
-}
-
-__device__ Vec3f Ray::intersect(const Vec3f &v0, const Vec3f &v1, const Vec3f &v2) {
-    const Vec3f rayorig3f = Vec3f(origin.x, origin.y, origin.z);
-    const Vec3f raydir3f = Vec3f(direction.x, direction.y, direction.z);
-
-    const float EPSILON = 0.00001f; // works better
-    const Vec3f miss(F32_MAX, F32_MAX, F32_MAX);
-
-    Vec3f edge1 = v1 - v0;
-    Vec3f edge2 = v2 - v0;
-
-    Vec3f tvec = rayorig3f - v0;
-    Vec3f pvec = cross(raydir3f, edge2);
-    float det = dot(edge1, pvec);
-
-    float invdet = 1.0f / det;
-
-    float u = dot(tvec, pvec) * invdet;
-
-    Vec3f qvec = cross(tvec, edge1);
-
-    float v = dot(raydir3f, qvec) * invdet;
-
-    if (det > EPSILON) {
-        if (u < 0.0f || u > 1.0f) return miss; // 1.0 want = det * 1/det
-        if (v < 0.0f || (u + v) > 1.0f) return miss;
-        // if u and v are within these bounds, continue and go to float t = dot(...
-    } else if (det < -EPSILON) {
-        if (u > 0.0f || u < 1.0f) return miss;
-        if (v > 0.0f || (u + v) < 1.0f) return miss;
-        // else continue
-    } else // if det is not larger (more positive) than EPSILON or not smaller (more negative) than -EPSILON, there is a "miss"
-        return miss;
-
-    float t = dot(edge2, qvec) * invdet;
-
-    if (t > tMin && t < tMax)
-        return Vec3f(u, v, t);
-
-    // otherwise (t < raytmin or t > raytmax) miss
-    return miss;
 }
 
