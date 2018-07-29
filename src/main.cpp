@@ -12,6 +12,7 @@
 #include <util/Config.h>
 #include <bvh/BVH.h>
 #include <loader/SceneLoader.h>
+#include <material/MaterialCompact.h>
 
 void Timer(int) {
     glutPostRedisplay();
@@ -38,20 +39,32 @@ int main(int argc, char **argv) {
     HDRImage *hdrEnv = hdrLoader.load(config->hdrFileName);
 
     std::string bvhFileName = config->objFileName + ".bvh";
+    std::string matFileName = config->objFileName + ".mat";
     FILE *bvhFile = nullptr;
     bvhFile = fopen(bvhFileName.c_str(), "rb");
+    FILE *matFile = nullptr;
+//    matFile = fopen(matFileName.c_str(), "rb");
+
     BVHCompact *bvhCompact;
-    if (!bvhFile) {
+    MaterialCompact *materialCompact;
+
+    if (!bvhFile || !matFile) {
         SceneLoader sceneLoader(config);
         Scene *scene = sceneLoader.load();
+
+        materialCompact = new MaterialCompact(scene);
+        materialCompact->save(matFileName);
+
         SAHHelper sahHelper;
         auto bvh = new BVH(scene, sahHelper);
         bvhCompact = bvh->createHolder();
         bvhCompact->save(bvhFileName);
+
         delete scene;
         delete bvh;
     } else {
         bvhCompact = new BVHCompact(bvhFile);
+        materialCompact = new MaterialCompact(matFile);
     }
 
     // initialize GLUT
@@ -85,7 +98,7 @@ int main(int argc, char **argv) {
         throw std::runtime_error("ERROR: Support for necessary OpenGL extensions missing.");
     fprintf(stderr, "GLEW initialized  \n");
 
-    Renderer::init(config, bvhCompact, hdrEnv);
+    Renderer::init(config, bvhCompact, materialCompact, hdrEnv);
     fprintf(stderr, "Renderer initialized \n");
 
     Timer(0);
@@ -99,5 +112,6 @@ int main(int argc, char **argv) {
     Controller::clear();
     Renderer::clear();
     delete bvhCompact;
+    delete materialCompact;
     delete hdrEnv;
 }

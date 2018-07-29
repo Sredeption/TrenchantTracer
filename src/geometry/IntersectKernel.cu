@@ -278,6 +278,7 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
     if (hit.index != -1) {
         // remapping tri indices delayed until this point for performance reasons
         // (slow global memory lookup in de gpuTriIndices array) because multiple triangles per node can potentially be hit
+        hit.matIndex = bvh->matIndices[hit.index].x;
         hit.index = bvh->triIndices[hit.index].x;
     }
 

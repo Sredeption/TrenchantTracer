@@ -7,6 +7,7 @@
 class Hit {
 public:
     int index;
+    int matIndex;
     float distance;
     Vec3f normal;
     Vec3f n; //normalized normal
@@ -14,15 +15,15 @@ public:
     Vec3f point; // intersection point
 
     __host__ __device__ Hit() :
-            index(-1), distance(-1), normal(), n(), nl() {
+            index(-1), matIndex(-1), distance(-1), normal(), n(), nl() {
     }
 
     __host__ __device__ Hit(const int &index, const float &distance) :
-            index(index), distance(distance), normal(), n(), nl() {
+            index(index), matIndex(-1), distance(distance), normal(), n(), nl() {
     }
 
     __host__ __device__ Hit(const Hit &hit) :
-            index(hit.index), distance(hit.distance), normal(hit.normal), n(hit.n), nl(hit.nl) {
+            index(hit.index), matIndex(hit.matIndex), distance(hit.distance), normal(hit.normal), n(hit.n), nl(hit.nl) {
     }
 
 };

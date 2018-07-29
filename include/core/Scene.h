@@ -33,9 +33,15 @@ public:
 
     const Vec3f &getVertex(int idx);
 
-    const U32 *getMaterialIndexPtr(int idx = 0);
+    const U32 *getMatIndexPtr(int idx = 0);
 
-    const U32 &getMaterialIndex(int idx);
+    const U32 &getMatIndex(int idx);
+
+    int getMaterialNum() const;
+
+    const Material **getMaterialPtr(int idx = 0);
+
+    const Material *&getMaterial(int idx);
 
 };
 

@@ -3,14 +3,22 @@
 const std::string Coat::TYPE = "Coat";
 
 __host__ __device__ Coat::Coat() : Material(COAT) {
-    //hand coded test parameter
-    specularColor = Vec3f(1, 1, 1);
-    diffuseColor = Vec3f(0.9f, 0.3f, 0.0f);
 }
 
 __host__ Coat::Coat(const nlohmann::json &material) : Coat() {
+    const nlohmann::json specJson = material["specularColor"];
+    specularColor = Vec3f(specJson[0], specJson[1], specJson[2]);
+    const nlohmann::json diffJson = material["diffuseColor"];
+    diffuseColor = Vec3f(diffJson[0], diffJson[1], diffJson[2]);
 }
 
+__host__ U32 Coat::size() const {
+    return sizeof(Coat);
+}
+
+// COAT material based on https://github.com/peterkutz/GPUPathTracer
+// randomly select diffuse or specular reflection
+// looks okay-ish but inaccurate (no Fresnel calculation yet)
 __device__ Ray Coat::sample(curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask) {
     Ray nextRay = ray;// ray of next path segment
     float rouletteRandomFloat = curand_uniform(randState);
@@ -56,3 +64,4 @@ __device__ Ray Coat::sample(curandState *randState, const Ray &ray, const Hit &h
 
     return nextRay;
 }
+

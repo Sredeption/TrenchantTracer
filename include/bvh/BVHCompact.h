@@ -31,16 +31,19 @@ public:
     float4 *woopTri; // device memory
     float4 *debugTri; // device memory
     int1 *triIndices; // device memory
+    int1 *matIndices; // device memory
 
     cudaTextureObject_t nodesTexture;
     cudaTextureObject_t woopTriTexture;
     cudaTextureObject_t debugTriTexture;
     cudaTextureObject_t triIndicesTexture;
+    cudaTextureObject_t matIndicesTexture;
 
     U32 nodesSize;
     U32 woopTriSize;
     U32 debugTriSize;
     U32 triIndicesSize;
+    U32 matIndicesSize;
     U32 leafNodeCount;
     U32 triCount;
 

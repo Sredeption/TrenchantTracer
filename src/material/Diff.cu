@@ -3,16 +3,19 @@
 const std::string Diff::TYPE = "Diff";
 
 __host__ __device__ Diff::Diff() : Material(DIFF) {
-
 }
 
 Diff::Diff(const nlohmann::json &material) : Diff() {
+    const nlohmann::json diffJson = material["diffuseColor"];
+    diffuseColor = Vec3f(diffJson[0], diffJson[1], diffJson[2]);
+}
 
+U32 Diff::size() const {
+    return sizeof(Diff);
 }
 
 Ray Diff::sample(curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask) {
     Ray nextRay = ray;// ray of next path segment
-    Vec3f diffuseColor = Vec3f(0.9f, 0.3f, 0.0f); // hardcoded triangle colour  .9f, 0.3f, 0.0f
     // pick two random numbers
     float phi = 2 * M_PI * curand_uniform(randState);
     float r2 = curand_uniform(randState);

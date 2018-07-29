@@ -14,7 +14,8 @@ union Color  // 4 bytes = 4 chars = 1 float
 };
 
 __device__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEnv,
-                              BVHCompact *bvhCompact, Ray ray, RenderMeta *renderMeta) {
+                              BVHCompact *bvhCompact, MaterialCompact *materialCompact,
+                              Ray ray, RenderMeta *renderMeta) {
 
     Vec3f mask = Vec3f(1.0f, 1.0f, 1.0f); // colour mask
     Vec3f accumulatedColor = Vec3f(0.0f, 0.0f, 0.0f); // accumulated colour
@@ -36,16 +37,27 @@ __device__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEnv,
         emit = Vec3f(0.0, 0.0, 0);  // object emission
         accumulatedColor += (mask * emit);
 
-        Coat coat;
-
-        ray = coat.sample(randState, ray, hit, mask);
-
+        Material *material = materialCompact->materials[hit.matIndex];
+        switch (material->type) {
+            case COAT:
+                ray = ((Coat *) material)->sample(randState, ray, hit, mask);
+                break;
+            case DIFF:
+                break;
+            case METAL:
+                break;
+            case SPEC:
+                break;
+            case REFR:
+                break;
+        }
     }
     return accumulatedColor;
 }
 
 __global__ void pathTracingKernel(Vec3f *outputBuffer, Vec3f *accumulatedBuffer, HDRImage *hdrEnv,
-                                  RenderMeta *renderMeta, CameraMeta *cameraMeta, BVHCompact *bvhCompact) {
+                                  RenderMeta *renderMeta, CameraMeta *cameraMeta, BVHCompact *bvhCompact,
+                                  MaterialCompact *materialCompact) {
 
     // assign a CUDA thread to every pixel by using the threadIndex
     unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -147,7 +159,7 @@ __global__ void pathTracingKernel(Vec3f *outputBuffer, Vec3f *accumulatedBuffer,
         Vec3f originInWorldSpace = aperturePoint;
 
         Ray rayInWorldSpace(originInWorldSpace, directionInWorldSpace, ray_tmin, ray_tmax);
-        finalColor += renderKernel(&randState, hdrEnv, bvhCompact, rayInWorldSpace, renderMeta) *
+        finalColor += renderKernel(&randState, hdrEnv, bvhCompact, materialCompact, rayInWorldSpace, renderMeta) *
                       (1.0f / renderMeta->SAMPLES);
     }
 
@@ -181,6 +193,6 @@ void Renderer::render() {
     cudaMemcpy(renderMetaDevice, &renderMeta, sizeof(RenderMeta), cudaMemcpyHostToDevice);
 
     pathTracingKernel << < grid, block >> > (outputBuffer, accumulatedBuffer, hdrEnv,
-            renderMetaDevice, cameraMetaDevice, bvhCompact);
+            renderMetaDevice, cameraMetaDevice, bvhCompact, materialCompact);
 }
 

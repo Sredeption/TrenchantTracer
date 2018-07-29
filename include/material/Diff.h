@@ -14,9 +14,12 @@ class Diff : public Material {
 public:
     static const std::string TYPE;
 
+    Vec3f diffuseColor;
     __host__ __device__ Diff();
 
     __host__ explicit Diff(const nlohmann::json &material);
+
+    __host__ U32 size() const override;
 
     __device__ __inline__ Ray sample(curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask);
 };

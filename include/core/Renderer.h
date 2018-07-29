@@ -15,16 +15,17 @@
 #include <util/Config.h>
 #include <util/WangHash.h>
 #include <bvh/BVHCompact.h>
+#include <material/MaterialCompact.h>
 
 class HDRImage;
 
 class BVHCompact;
 
+class MaterialCompact;
+
 struct RenderMeta {
     int frameNumber;
     unsigned int hashedFrame;
-    int hdrWidth;
-    int hdrHeight;
 
     int SAMPLES;
     float PI;
@@ -44,6 +45,7 @@ private:
 
     Config *config;
     BVHCompact *bvhCompact; //device memory
+    MaterialCompact *materialCompact; //device memory
     HDRImage *hdrEnv;
 
     void render();
@@ -52,11 +54,11 @@ public:
     const static float PI;
     const static float TWO_PI;
 
-    Renderer(Config *config, BVHCompact *bvhCompact, HDRImage *hdrImage);
+    Renderer(Config *config, BVHCompact *bvhCompact, MaterialCompact *materialCompact, HDRImage *hdrImage);
 
     ~Renderer();
 
-    static void init(Config *config, BVHCompact *bvhCompact, HDRImage *hdrImage);
+    static void init(Config *config, BVHCompact *bvhCompact, MaterialCompact *materialCompact, HDRImage *hdrImage);
 
     static Renderer *getInstance();
 

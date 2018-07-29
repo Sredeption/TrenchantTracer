@@ -16,18 +16,18 @@ class Ray;
 
 
 // COAT material based on https://github.com/peterkutz/GPUPathTracer
-// randomly select diffuse or specular reflection
-// looks okay-ish but inaccurate (no Fresnel calculation yet)
 class Coat : public Material {
-public:
-    static const std::string TYPE;
-
+private:
     Vec3f specularColor;
     Vec3f diffuseColor;
+public:
+    static const std::string TYPE;
 
     __host__ __device__ explicit Coat();
 
     __host__ explicit Coat(const nlohmann::json &material);
+
+    __host__ U32 size() const override ;
 
     __device__ Ray sample(curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask);
 

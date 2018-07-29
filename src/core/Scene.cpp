@@ -54,14 +54,29 @@ const Vec3f &Scene::getVertex(int idx) {
     return *getVertexPtr(idx);
 }
 
-const U32 *Scene::getMaterialIndexPtr(int idx) {
+const U32 *Scene::getMatIndexPtr(int idx) {
     if (0 <= idx && idx <= materialIndices.getSize())
         return (const U32 *) materialIndices.getPtr() + idx;
     else
         throw std::runtime_error("materialIndices out of bound");
 }
 
-const U32 &Scene::getMaterialIndex(int idx) {
-    return *getMaterialIndexPtr(idx);
+const U32 &Scene::getMatIndex(int idx) {
+    return *getMatIndexPtr(idx);
+}
+
+int Scene::getMaterialNum() const {
+    return materials.getSize();
+}
+
+const Material **Scene::getMaterialPtr(int idx) {
+    if (0 <= idx && idx <= materials.getSize())
+        return (const Material **) materials.getPtr() + idx;
+    else
+        throw std::runtime_error("materials out of bound");
+}
+
+const Material *&Scene::getMaterial(int idx) {
+    return *getMaterialPtr(idx);
 }
 
