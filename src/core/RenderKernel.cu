@@ -5,6 +5,10 @@
 #include <math/CutilMath.h>
 #include <geometry/Ray.h>
 #include <material/Coat.h>
+#include <material/Diff.h>
+#include <material/Metal.h>
+#include <material/Spec.h>
+#include <material/Refr.h>
 
 // union struct required for mapping pixel colours to OpenGL buffer
 union Color  // 4 bytes = 4 chars = 1 float
@@ -13,9 +17,9 @@ union Color  // 4 bytes = 4 chars = 1 float
     uchar4 components;
 };
 
-__device__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEnv,
-                              BVHCompact *bvhCompact, MaterialCompact *materialCompact,
-                              Ray ray, RenderMeta *renderMeta) {
+__device__ __inline__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEnv,
+                                         BVHCompact *bvhCompact, MaterialCompact *materialCompact,
+                                         Ray ray, RenderMeta *renderMeta) {
 
     Vec3f mask = Vec3f(1.0f, 1.0f, 1.0f); // colour mask
     Vec3f accumulatedColor = Vec3f(0.0f, 0.0f, 0.0f); // accumulated colour
@@ -43,12 +47,16 @@ __device__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEnv,
                 ray = ((Coat *) material)->sample(randState, ray, hit, mask);
                 break;
             case DIFF:
+                ray = ((Diff *) material)->sample(randState, ray, hit, mask);
                 break;
             case METAL:
+                ray = ((Metal *) material)->sample(randState, ray, hit, mask);
                 break;
             case SPEC:
+                ray = ((Spec *) material)->sample(randState, ray, hit, mask);
                 break;
             case REFR:
+                ray = ((Refr *) material)->sample(randState, ray, hit, mask);
                 break;
         }
     }
@@ -66,7 +74,9 @@ __global__ void pathTracingKernel(Vec3f *outputBuffer, Vec3f *accumulatedBuffer,
     // get window size from camera
     int width = cameraMeta->resolution.x;
     int height = cameraMeta->resolution.y;
-    float ray_tmin = 0.00001f; // set to 0.01f when using refractive material
+//    float ray_tmin = 0.00001f; // set to 0.01f when using refractive material
+    // TODO: find a proper way to set minimal ray distance.
+    float ray_tmin = 0.01f; // set to 0.01f when using refractive material
     float ray_tmax = 1e20;
 
     // global threadId, see richiesams blogspot

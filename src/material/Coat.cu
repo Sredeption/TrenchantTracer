@@ -6,10 +6,8 @@ __host__ __device__ Coat::Coat() : Material(COAT) {
 }
 
 __host__ Coat::Coat(const nlohmann::json &material) : Coat() {
-    const nlohmann::json specJson = material["specularColor"];
-    specularColor = Vec3f(specJson[0], specJson[1], specJson[2]);
-    const nlohmann::json diffJson = material["diffuseColor"];
-    diffuseColor = Vec3f(diffJson[0], diffJson[1], diffJson[2]);
+    specularColor = jsonToColor(material["specularColor"]);
+    diffuseColor = jsonToColor(material["diffuseColor"]);
 }
 
 __host__ U32 Coat::size() const {

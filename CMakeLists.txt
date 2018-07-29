@@ -23,7 +23,10 @@ set(CUDA_SRC
         src/core/HDRKernel.cu
         src/material/Material.cu
         src/material/Coat.cu
-        src/material/Diff.cu)
+        src/material/Diff.cu
+        src/material/Metal.cu
+        src/material/Spec.cu
+        src/material/Refr.cu)
 
 CUDA_COMPILE(CUDA_O ${CUDA_SRC})
 
@@ -91,7 +94,10 @@ add_executable(TrenchantTracer
         include/loader/MaterialLoader.h
         src/material/MaterialCompact.cpp
         include/material/MaterialCompact.h
-        include/material/Material.h)
+        include/material/Material.h
+        include/material/Metal.h
+        include/material/Spec.h
+        include/material/Refr.h)
 
 target_link_libraries(TrenchantTracer
         ${CUDA_LIBRARIES}

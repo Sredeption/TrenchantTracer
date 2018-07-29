@@ -11,6 +11,9 @@
 #include <material/MaterialPool.h>
 #include <material/Coat.h>
 #include <material/Diff.h>
+#include <material/Metal.h>
+#include <material/Spec.h>
+#include <material/Refr.h>
 
 class MaterialLoader {
 public:

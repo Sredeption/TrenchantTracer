@@ -5,16 +5,15 @@ const std::string Diff::TYPE = "Diff";
 __host__ __device__ Diff::Diff() : Material(DIFF) {
 }
 
-Diff::Diff(const nlohmann::json &material) : Diff() {
-    const nlohmann::json diffJson = material["diffuseColor"];
-    diffuseColor = Vec3f(diffJson[0], diffJson[1], diffJson[2]);
+__host__ Diff::Diff(const nlohmann::json &material) : Diff() {
+    diffuseColor = jsonToColor(material["diffuseColor"]);
 }
 
-U32 Diff::size() const {
+__host__ U32 Diff::size() const {
     return sizeof(Diff);
 }
 
-Ray Diff::sample(curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask) {
+__device__ Ray Diff::sample(curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask) {
     Ray nextRay = ray;// ray of next path segment
     // pick two random numbers
     float phi = 2 * M_PI * curand_uniform(randState);

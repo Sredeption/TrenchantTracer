@@ -27,7 +27,7 @@ public:
 
     __host__ explicit Coat(const nlohmann::json &material);
 
-    __host__ U32 size() const override ;
+    __host__ U32 size() const override;
 
     __device__ Ray sample(curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask);
 
