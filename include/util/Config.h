@@ -14,8 +14,11 @@ public:
     int height;
     std::string hdrFileName;
     std::string objFileName;
+    std::string materialFile;
     int samples;
+    bool bvhReload;
     bool materialReload;
+    nlohmann::json objects;
 
     explicit Config(std::string fileName);
 };

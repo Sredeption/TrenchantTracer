@@ -8,19 +8,27 @@ void Scene::add(Object *object) {
     int vertexBase = this->vertices.getSize();
     Vertices *vertices = object->getVertices();
     this->vertices.add(vertices->getVertex());
-    Array<Material *> objectMaterials = object->getMaterialPool()->all();
-    auto materialBase = (U32) this->materials.getSize();
-    for (int i = 0; i < objectMaterials.getSize(); i++) {
-        objectMaterials[i]->index = materialBase + i;
-        this->materials.add(objectMaterials[i]);
-    }
+    add(object->getMaterialPool());
 
     for (Group *group:object->getGroups()) {
-        Array<Vec3i> vertexIndices = group->getMesh()->getVertexIndices();
+        Array<Vec3i> vertexIndices = static_cast<Mesh *>(group->getGeometry())->getVertexIndices();
         for (int i = 0; i < vertexIndices.getSize(); i++) {
             this->vertexIndices.add(vertexIndices[i] + vertexBase);
             this->materialIndices.add(group->getMaterial()->index);
         }
+    }
+}
+
+void Scene::add(Group *group) {
+    this->geometries.add(group);
+}
+
+void Scene::add(MaterialPool *pool) {
+    Array<Material *> objectMaterials = pool->all();
+    auto materialBase = (U32) this->materials.getSize();
+    for (int i = 0; i < objectMaterials.getSize(); i++) {
+        objectMaterials[i]->index = materialBase + i;
+        this->materials.add(objectMaterials[i]);
     }
 }
 
@@ -78,5 +86,21 @@ const Material **Scene::getMaterialPtr(int idx) {
 
 const Material *&Scene::getMaterial(int idx) {
     return *getMaterialPtr(idx);
+}
+
+int Scene::getGeometryNum() const {
+    return geometries.getSize();
+}
+
+const Group **Scene::getGeometryPtr(int idx) {
+    if (0 <= idx && idx <= geometries.getSize())
+        return (const Group **) geometries.getPtr() + idx;
+    else
+        throw std::runtime_error("geometries out of bound");
+
+}
+
+const Group *&Scene::getGeometry(int idx) {
+    return *getGeometryPtr(idx);
 }
 

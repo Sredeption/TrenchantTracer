@@ -24,7 +24,7 @@ __device__ Ray Refr::sample(curandState *randState, const Ray &ray, const Hit &h
     float cos2t = 1.0f - nnt * nnt * (1.f - ddn * ddn);
 
     if (cos2t < 0.0f) {
-        // total internal reflection 
+        // total internal reflection
         nextRay.direction = ray.direction - hit.n * 2.0f * dot(hit.n, ray.direction);
         nextRay.direction.normalize();
 

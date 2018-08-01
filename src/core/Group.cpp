@@ -1,22 +1,18 @@
-//
-// Created by issac on 18-7-11.
-//
-
 #include <core/Group.h>
 
-Group::Group(std::string name, Mesh *mesh) :
-        name(std::move(name)), mesh(mesh) {
+Group::Group(std::string name, Geometry *geometry) :
+        name(std::move(name)), geometry(geometry) {
 
 }
 
-Mesh *Group::getMesh() {
-    return mesh;
+Geometry *Group::getGeometry() const {
+    return geometry;
 }
 
 void Group::setMaterial(Material *material) {
     this->material = material;
 }
 
-Material *Group::getMaterial() {
+Material *Group::getMaterial() const {
     return this->material;
 }

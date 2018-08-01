@@ -1,5 +1,14 @@
 #include <geometry/Mesh.h>
 
+const std::string Mesh::TYPE = "Mesh";
+
+Mesh::Mesh() : Geometry(MESH) {
+}
+
+U32 Mesh::size() const {
+    return sizeof(Mesh);
+}
+
 void Mesh::addVertex(const Vec3i &vertex) {
     vertexIndices.add(vertex);
 }
@@ -10,14 +19,6 @@ void Mesh::addTexture(const Vec3i &texture) {
 
 void Mesh::addNormal(const Vec3i &normal) {
     normalIndices.add(normal);
-}
-
-bool Mesh::empty() {
-    return vertexIndices.getSize() == 0;
-}
-
-int Mesh::size() {
-    return vertexIndices.getSize();
 }
 
 Array<Vec3i> &Mesh::getVertexIndices() {

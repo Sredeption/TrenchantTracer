@@ -1,8 +1,4 @@
-//
-// Created by issac on 18-7-14.
-//
-
-#include "bvh/AABB.h"
+#include <bvh/AABB.h>
 
 AABB::AABB() : minBound(FW_F32_MAX, FW_F32_MAX, FW_F32_MAX), maxBound(-FW_F32_MAX, -FW_F32_MAX, -FW_F32_MAX) {
 

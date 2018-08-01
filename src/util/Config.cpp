@@ -11,8 +11,11 @@ Config::Config(std::string fileName) {
     height = config.at("height").get<int>();
     hdrFileName = config.at("hdr-file-name").get<std::string>();
     objFileName = config.at("obj-file-name").get<std::string>();
+    materialFile = config.at("material-file").get<std::string>();
     samples = config.at("samples").get<int>();
-    materialReload= config.at("material-reload").get<bool>();
+    bvhReload = config.at("bvh-reload").get<bool>();
+    materialReload = config.at("material-reload").get<bool>();
+    objects = config["objects"];
 
     ifs.close();
 }

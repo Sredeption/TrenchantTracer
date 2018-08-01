@@ -13,6 +13,7 @@ private:
     Array<Vec3f> vertices;
     Array<U32> materialIndices;
     Array<Material *> materials;
+    Array<Group *> geometries;
 
 public:
     Scene();
@@ -20,6 +21,10 @@ public:
     ~Scene();
 
     void add(Object *object);
+
+    void add(MaterialPool *pool);
+
+    void add(Group *group);
 
     int getTrianglesNum() const;
 
@@ -42,6 +47,12 @@ public:
     const Material **getMaterialPtr(int idx = 0);
 
     const Material *&getMaterial(int idx);
+
+    int getGeometryNum() const;
+
+    const Group **getGeometryPtr(int idx = 0);
+
+    const Group *&getGeometry(int idx);
 
 };
 

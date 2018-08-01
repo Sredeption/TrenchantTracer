@@ -5,7 +5,8 @@ Renderer *Renderer::instance = nullptr;
 const float Renderer::PI = 3.14156265f;
 const float Renderer::TWO_PI = 6.2831853071795864769252867665590057683943f;
 
-Renderer::Renderer(Config *config, BVHCompact *bvhCompact, MaterialCompact *materialCompact, HDRImage *hdrImage) {
+Renderer::Renderer(Config *config, BVHCompact *bvhCompact, GeometryCompact *geometryCompact,
+                   MaterialCompact *materialCompact, HDRImage *hdrImage) {
 
     this->config = config;
     // store rendering resources
@@ -14,6 +15,9 @@ Renderer::Renderer(Config *config, BVHCompact *bvhCompact, MaterialCompact *mate
 
     cudaMalloc(&this->materialCompact, sizeof(MaterialCompact));
     cudaMemcpy(this->materialCompact, materialCompact, sizeof(MaterialCompact), cudaMemcpyHostToDevice);
+
+    cudaMalloc(&this->geometryCompact, sizeof(GeometryCompact));
+    cudaMemcpy(this->geometryCompact, geometryCompact, sizeof(GeometryCompact), cudaMemcpyHostToDevice);
 
     cudaMalloc(&this->hdrEnv, sizeof(HDRImage));
     cudaMemcpy(this->hdrEnv, hdrImage, sizeof(HDRImage), cudaMemcpyHostToDevice);
@@ -62,8 +66,9 @@ Renderer::~Renderer() {
     cudaFree(renderMetaDevice);
 }
 
-void Renderer::init(Config *config, BVHCompact *bvhCompact, MaterialCompact *materialCompact, HDRImage *hdrImage) {
-    Renderer::instance = new Renderer(config, bvhCompact, materialCompact, hdrImage);
+void Renderer::init(Config *config, BVHCompact *bvhCompact, GeometryCompact *geometryCompact,
+                    MaterialCompact *materialCompact, HDRImage *hdrImage) {
+    Renderer::instance = new Renderer(config, bvhCompact, geometryCompact, materialCompact, hdrImage);
 }
 
 void Renderer::clear() {

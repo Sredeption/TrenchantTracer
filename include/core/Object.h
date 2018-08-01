@@ -5,10 +5,15 @@
 #include <vector>
 #include <cfloat>
 #include <iostream>
+#include <cmath>
 
 #include <core/Group.h>
 #include <geometry/Vertices.h>
 #include <material/MaterialPool.h>
+
+class Group;
+
+class MaterialPool;
 
 class Object {
 private:

@@ -23,9 +23,25 @@ public:
     }
 
     __host__ __device__ Hit(const Hit &hit) :
-            index(hit.index), matIndex(hit.matIndex), distance(hit.distance), normal(hit.normal), n(hit.n), nl(hit.nl) {
+            index(hit.index), matIndex(hit.matIndex), distance(hit.distance), normal(hit.normal),
+            n(hit.n), nl(hit.nl), point(hit.point) {
     }
 
+    inline __host__ __device__ bool operator<(const Hit &that) const {
+        if (this->distance == that.distance)
+            return false;
+        if (that.distance == -1)
+            return true;
+        return this->distance < that.distance;
+    }
+
+    inline __host__ __device__ bool operator>(const Hit &that) const {
+        if (this->distance == that.distance)
+            return false;
+        if (this->distance == -1)
+            return true;
+        return this->distance > that.distance;
+    }
 };
 
 #endif //TRENCHANTTRACER_HIT_H

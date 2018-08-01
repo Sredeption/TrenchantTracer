@@ -5,7 +5,6 @@
 #include <cuda_runtime.h> // for __host__  __device__
 
 #define FW_ASSERT(X) ((void)0)
-// FW_ASSERT(X) ((X) ? ((void)0) : FW::fail("Assertion failed!\n%s:%d\n%s", __FILE__, __LINE__, #X)) in DEBUG
 
 #define FW_F32_MAX          (3.402823466e+38f)
 

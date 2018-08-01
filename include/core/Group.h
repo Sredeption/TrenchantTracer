@@ -1,9 +1,6 @@
-//
-// Created by issac on 18-7-11.
-//
-
 #ifndef TRENCHANTTRACER_GROUP_H
 #define TRENCHANTTRACER_GROUP_H
+
 
 #include <string>
 #include <utility>
@@ -11,19 +8,21 @@
 #include <geometry/Mesh.h>
 #include <material/Material.h>
 
+class Material;
+
 class Group {
 private:
     std::string name;
-    Mesh *mesh;
+    Geometry *geometry;
     Material *material;
 public:
-    Group(std::string name, Mesh *mesh);
+    Group(std::string name, Geometry *geometry);
 
-    Mesh *getMesh();
+    Geometry *getGeometry() const;
 
     void setMaterial(Material *material);
 
-    Material* getMaterial();
+    Material *getMaterial() const;
 };
 
 

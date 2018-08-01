@@ -27,8 +27,8 @@ void display() {
 
 int main(int argc, char **argv) {
     // set up config
-    std::string configFileName = "config/maserati.json";
-//    std::string configFileName = "config/dev.json";
+//    std::string configFileName = "config/maserati.json";
+    std::string configFileName = "config/dev.json";
     auto config = new Config(configFileName);
 
     // init camera
@@ -43,24 +43,24 @@ int main(int argc, char **argv) {
     std::string bvhFileName = config->objFileName + ".bvh";
     std::string matFileName = config->objFileName + ".mat";
     FILE *bvhFile = nullptr;
-    bvhFile = fopen(bvhFileName.c_str(), "rb");
+    if (!config->bvhReload)
+        bvhFile = fopen(bvhFileName.c_str(), "rb");
     FILE *matFile = nullptr;
     if (!config->materialReload)
         matFile = fopen(matFileName.c_str(), "rb");
 
     BVHCompact *bvhCompact;
     MaterialCompact *materialCompact;
+    GeometryCompact *geometryCompact;
 
     if (!bvhFile || !matFile) {
         SceneLoader sceneLoader(config);
         Scene *scene = sceneLoader.load();
 
-        if (!matFile) {
-            materialCompact = new MaterialCompact(scene);
-            materialCompact->save(matFileName);
-        } else {
-            materialCompact = new MaterialCompact(matFile);
-        }
+        geometryCompact = new GeometryCompact(scene);
+
+        materialCompact = new MaterialCompact(scene);
+        materialCompact->save(matFileName);
 
         if (!bvhFile) {
             SAHHelper sahHelper;
@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
         throw std::runtime_error("ERROR: Support for necessary OpenGL extensions missing.");
     fprintf(stderr, "GLEW initialized  \n");
 
-    Renderer::init(config, bvhCompact, materialCompact, hdrEnv);
+    Renderer::init(config, bvhCompact, geometryCompact, materialCompact, hdrEnv);
     fprintf(stderr, "Renderer initialized \n");
 
     Timer(0);
@@ -124,6 +124,7 @@ int main(int argc, char **argv) {
     Controller::clear();
     Renderer::clear();
     delete bvhCompact;
+    delete geometryCompact;
     delete materialCompact;
     delete hdrEnv;
 }

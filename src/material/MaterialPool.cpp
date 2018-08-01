@@ -10,7 +10,10 @@ void MaterialPool::add(const std::string &name, Material *material) {
 }
 
 Material *MaterialPool::get(const std::string &name) {
-    return materials[name];
+    Material *material = materials[name];
+    if (material == nullptr)
+        throw std::runtime_error("Material " + name + " couldn't be found.");
+    return material;
 }
 
 Array<Material *> MaterialPool::all() {

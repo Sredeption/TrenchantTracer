@@ -1,9 +1,8 @@
 #ifndef TRENCHANTTRACER_CUTILMATH_H
 #define TRENCHANTTRACER_CUTILMATH_H
 
-#include "cuda_runtime.h"
+#include <cuda_runtime.h>
 
-////////////////////////////////////////////////////////////////////////////////
 typedef unsigned int uint;
 typedef unsigned short ushort;
 

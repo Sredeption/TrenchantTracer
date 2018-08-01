@@ -26,7 +26,8 @@ set(CUDA_SRC
         src/material/Diff.cu
         src/material/Metal.cu
         src/material/Spec.cu
-        src/material/Refr.cu)
+        src/material/Refr.cu
+        src/geometry/Sphere.cu)
 
 CUDA_COMPILE(CUDA_O ${CUDA_SRC})
 
@@ -97,7 +98,12 @@ add_executable(TrenchantTracer
         include/material/Material.h
         include/material/Metal.h
         include/material/Spec.h
-        include/material/Refr.h)
+        include/material/Refr.h
+        src/geometry/Geometry.cpp
+        include/geometry/Geometry.h
+        include/geometry/Sphere.h
+        src/geometry/GeometryCompact.cpp
+        include/geometry/GeometryCompact.h)
 
 target_link_libraries(TrenchantTracer
         ${CUDA_LIBRARIES}

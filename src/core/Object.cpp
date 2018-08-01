@@ -49,7 +49,7 @@ void Object::postProcess() {
     // loop over all triangles in all groups, grow minp and maxp
 
     for (Group *group: groups) {
-        Array<Vec3i> &triangles = group->getMesh()->getVertexIndices();
+        Array<Vec3i> &triangles = static_cast<Mesh *>(group->getGeometry())->getVertexIndices();
         for (int i = 0; i < triangles.getSize(); i++) {
             for (int vertexIndex : triangles[i]._v) {
                 const Vec3f &vertex = vertices[vertexIndex];
@@ -67,12 +67,12 @@ void Object::postProcess() {
     maxp -= origCenter;
 
     float maxi = 0;
-    maxi = std::max(maxi, (float) fabs(minp.x));
-    maxi = std::max(maxi, (float) fabs(minp.y));
-    maxi = std::max(maxi, (float) fabs(minp.z));
-    maxi = std::max(maxi, (float) fabs(maxp.x));
-    maxi = std::max(maxi, (float) fabs(maxp.y));
-    maxi = std::max(maxi, (float) fabs(maxp.z));
+    maxi = std::max(maxi, std::fabs(minp.x));
+    maxi = std::max(maxi, std::fabs(minp.y));
+    maxi = std::max(maxi, std::fabs(minp.z));
+    maxi = std::max(maxi, std::fabs(maxp.x));
+    maxi = std::max(maxi, std::fabs(maxp.y));
+    maxi = std::max(maxi, std::fabs(maxp.z));
 
     std::cout << "Scaling factor: " << (MaxCoordAfterRescale / maxi) << "\n";
     std::cout << "Center origin: " << origCenter.x << " " << origCenter.y << " " << origCenter.z << "\n";

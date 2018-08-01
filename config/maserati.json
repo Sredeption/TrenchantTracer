@@ -2,7 +2,17 @@
   "width": 1280,
   "height": 720,
   "samples": 1,
+  "material-file": "data/master.mtl",
   "hdr-file-name": "data/Topanga_Forest_B_3k.hdr",
   "obj-file-name": "data/maserati/car3.obj",
-  "material-reload": true
+  "bvh-reload": true,
+  "material-reload": false,
+  "objects": [
+    {
+      "type": "Sphere",
+      "position": [-6, 0.5, 0],
+      "radius": 2.5,
+      "material": "spec1"
+    }
+  ]
 }

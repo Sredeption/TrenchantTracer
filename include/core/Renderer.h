@@ -21,6 +21,8 @@ class HDRImage;
 
 class BVHCompact;
 
+class GeometryCompact;
+
 class MaterialCompact;
 
 struct RenderMeta {
@@ -45,6 +47,7 @@ private:
 
     Config *config;
     BVHCompact *bvhCompact; //device memory
+    GeometryCompact *geometryCompact; //device memory
     MaterialCompact *materialCompact; //device memory
     HDRImage *hdrEnv;
 
@@ -57,11 +60,14 @@ public:
     const static float PI;
     const static float TWO_PI;
 
-    Renderer(Config *config, BVHCompact *bvhCompact, MaterialCompact *materialCompact, HDRImage *hdrImage);
+    Renderer(Config *config, BVHCompact *bvhCompact, GeometryCompact *geometryCompact, MaterialCompact *materialCompact,
+             HDRImage *hdrImage);
 
     ~Renderer();
 
-    static void init(Config *config, BVHCompact *bvhCompact, MaterialCompact *materialCompact, HDRImage *hdrImage);
+    static void
+    init(Config *config, BVHCompact *bvhCompact, GeometryCompact *geometryCompact, MaterialCompact *materialCompact,
+         HDRImage *hdrImage);
 
     static Renderer *getInstance();
 

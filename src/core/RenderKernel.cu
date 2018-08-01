@@ -9,6 +9,7 @@
 #include <material/Metal.h>
 #include <material/Spec.h>
 #include <material/Refr.h>
+#include <geometry/Sphere.h>
 
 // union struct required for mapping pixel colours to OpenGL buffer
 union Color  // 4 bytes = 4 chars = 1 float
@@ -17,9 +18,9 @@ union Color  // 4 bytes = 4 chars = 1 float
     uchar4 components;
 };
 
-__device__ __inline__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEnv,
-                                         BVHCompact *bvhCompact, MaterialCompact *materialCompact,
-                                         Ray ray, RenderMeta *renderMeta) {
+__device__ __inline__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEnv, BVHCompact *bvhCompact,
+                                         GeometryCompact *geometryCompact, MaterialCompact *materialCompact, Ray ray,
+                                         RenderMeta *renderMeta) {
 
     Vec3f mask = Vec3f(1.0f, 1.0f, 1.0f); // colour mask
     Vec3f accumulatedColor = Vec3f(0.0f, 0.0f, 0.0f); // accumulated colour
@@ -28,6 +29,11 @@ __device__ __inline__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEn
     for (int bounces = 0; bounces < 4; bounces++) {
         // iteration up to 4 bounces (instead of recursion in CPU code)
         Hit hit = ray.intersect(bvhCompact, true);
+        Hit geometryHit = ray.intersect(geometryCompact, true);
+
+        if (geometryHit < hit) {
+            hit = geometryHit;
+        }
 
         if (hit.distance > 1e19) {
             emit = hdrEnv->sample(ray, renderMeta);
@@ -63,7 +69,7 @@ __device__ __inline__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEn
 
 __global__ void pathTracingKernel(Vec3f *outputBuffer, Vec3f *accumulatedBuffer, HDRImage *hdrEnv,
                                   RenderMeta *renderMeta, CameraMeta *cameraMeta, BVHCompact *bvhCompact,
-                                  MaterialCompact *materialCompact) {
+                                  GeometryCompact *geometryCompact, MaterialCompact *materialCompact) {
 
     // assign a CUDA thread to every pixel by using the threadIndex
     unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -72,10 +78,10 @@ __global__ void pathTracingKernel(Vec3f *outputBuffer, Vec3f *accumulatedBuffer,
     // get window size from camera
     int width = cameraMeta->resolution.x;
     int height = cameraMeta->resolution.y;
-//    float ray_tmin = 0.00001f; // set to 0.01f when using refractive material
+//    float tMin = 0.00001f; // set to 0.01f when using refractive material
     // TODO: find a proper way to set minimal ray distance.
-    float ray_tmin = 0.01f; // set to 0.01f when using refractive material
-    float ray_tmax = 1e20;
+    float tMin = 0.01f; // set to 0.01f when using refractive material
+    float tMax = 1e20;
 
     // global threadId, see richiesams blogspot
     int threadId = (blockIdx.x + blockIdx.y * gridDim.x) * (blockDim.x * blockDim.y) +
@@ -161,9 +167,9 @@ __global__ void pathTracingKernel(Vec3f *outputBuffer, Vec3f *accumulatedBuffer,
         // ray origin
         Vec3f originInWorldSpace = aperturePoint;
 
-        Ray rayInWorldSpace(originInWorldSpace, directionInWorldSpace, ray_tmin, ray_tmax);
-        finalColor += renderKernel(&randState, hdrEnv, bvhCompact, materialCompact, rayInWorldSpace, renderMeta) *
-                      (1.0f / renderMeta->SAMPLES);
+        Ray rayInWorldSpace(originInWorldSpace, directionInWorldSpace, tMin, tMax);
+        finalColor += renderKernel(&randState, hdrEnv, bvhCompact, geometryCompact, materialCompact, rayInWorldSpace,
+                                   renderMeta) * (1.0f / renderMeta->SAMPLES);
     }
 
     // add pixel color to accumulation buffer (accumulates all samples)
@@ -196,6 +202,6 @@ void Renderer::render() {
     cudaMemcpy(renderMetaDevice, &renderMeta, sizeof(RenderMeta), cudaMemcpyHostToDevice);
 
     pathTracingKernel << < grid, block >> > (outputBuffer, accumulatedBuffer, hdrEnv,
-            renderMetaDevice, cameraMetaDevice, bvhCompact, materialCompact);
+            renderMetaDevice, cameraMetaDevice, bvhCompact, geometryCompact, materialCompact);
 }
 

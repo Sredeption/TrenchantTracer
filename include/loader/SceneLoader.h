@@ -10,6 +10,7 @@
 #include <util/Config.h>
 #include <loader/OBJLoader.h>
 #include <loader/HDRLoader.h>
+#include <geometry/Sphere.h>
 
 class SceneLoader {
     Config *config;
@@ -18,6 +19,8 @@ public:
     explicit SceneLoader(Config *config);
 
     Scene *load();
+
+    Group *loadGeometry(nlohmann::json &text, MaterialPool *pool);
 };
 
 

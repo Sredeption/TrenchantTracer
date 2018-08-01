@@ -1,4 +1,5 @@
 #include <geometry/Ray.h>
+#include <geometry/Sphere.h>
 
 
 //  RAY BOX INTERSECTION ROUTINES
@@ -68,7 +69,7 @@ __device__ __inline__ void hitPoint(Hit &hit, const Ray *ray) {
     hit.point = ray->origin + ray->direction * hit.distance; // intersection point
 }
 
-__device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
+__device__ Hit Ray::intersect(const BVHCompact *bvhCompact, bool needClosestHit) {
     int traversalStack[STACK_SIZE];
 
     float idirx, idiry, idirz;    // 1 / dir
@@ -100,13 +101,13 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
         // Traverse internal nodes until all SIMD lanes have found a leaf.
 
         while (nodeAddr >= 0 && nodeAddr != EntrypointSentinel) {
-            float4 n0xy = tex1Dfetch<float4>(bvh->nodesTexture, nodeAddr);
+            float4 n0xy = tex1Dfetch<float4>(bvhCompact->nodesTexture, nodeAddr);
             // child node 0, xy-bounds (c0.lo.x, c0.hi.x, c0.lo.y, c0.hi.y)
-            float4 n1xy = tex1Dfetch<float4>(bvh->nodesTexture, nodeAddr + 1);
+            float4 n1xy = tex1Dfetch<float4>(bvhCompact->nodesTexture, nodeAddr + 1);
             // child node 1. xy-bounds (c1.lo.x, c1.hi.x, c1.lo.y, c1.hi.y)
-            float4 nz = tex1Dfetch<float4>(bvh->nodesTexture, nodeAddr + 2);
+            float4 nz = tex1Dfetch<float4>(bvhCompact->nodesTexture, nodeAddr + 2);
             // child nodes 0 and 1, z-bounds(c0.lo.z, c0.hi.z, c1.lo.z, c1.hi.z)
-            float4 tmp = tex1Dfetch<float4>(bvh->nodesTexture, nodeAddr + 3);
+            float4 tmp = tex1Dfetch<float4>(bvhCompact->nodesTexture, nodeAddr + 3);
             // contains indices to 2 child nodes in case of inner node, see below
 
             // ptr[3] contains indices to 2 child nodes in case of inner node, see below
@@ -207,7 +208,7 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
 
                 // Read first 16 bytes of the triangle.
                 // fetch first precomputed triangle edge
-                float4 v00 = tex1Dfetch<float4>(bvh->woopTriTexture, triAddr);
+                float4 v00 = tex1Dfetch<float4>(bvhCompact->woopTriTexture, triAddr);
 
                 // End marker 0x80000000 (= negative zero) => all triangles in leaf processed. --> terminate
                 if (__float_as_int(v00.x) == 0x80000000) break;
@@ -223,7 +224,7 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
                     // Compute and check barycentric u.
 
                     // fetch second precomputed triangle edge
-                    float4 v11 = tex1Dfetch<float4>(bvh->woopTriTexture, triAddr + 1);
+                    float4 v11 = tex1Dfetch<float4>(bvhCompact->woopTriTexture, triAddr + 1);
                     float Ox = v11.w + origin.x * v11.x + origin.y * v11.y + origin.z * v11.z;  // Origin.x
                     float Dx = direction.x * v11.x + direction.y * v11.y + direction.z * v11.z;  // Direction.x
                     float u = Ox + t * Dx; // parametric equation of a ray (intersection point)
@@ -231,7 +232,7 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
                     if (u >= 0.0f && u <= 1.0f) {
                         // Compute and check barycentric v.
                         // fetch third precomputed triangle edge
-                        float4 v22 = tex1Dfetch<float4>(bvh->woopTriTexture, triAddr + 2);
+                        float4 v22 = tex1Dfetch<float4>(bvhCompact->woopTriTexture, triAddr + 2);
                         float Oy = v22.w + origin.x * v22.x + origin.y * v22.y + origin.z * v22.z;
                         float Dy = direction.x * v22.x + direction.y * v22.y + direction.z * v22.z;
                         float v = Oy + t * Dy;
@@ -272,13 +273,51 @@ __device__ Hit Ray::intersect(const BVHCompact *bvh, bool needClosestHit) {
     if (hit.index != -1) {
         // remapping tri indices delayed until this point for performance reasons
         // (slow global memory lookup in de gpuTriIndices array) because multiple triangles per node can potentially be hit
-        hit.matIndex = tex1Dfetch<int>(bvh->matIndicesTexture, hit.index);
-        hit.index = tex1Dfetch<int>(bvh->triIndicesTexture, hit.index);
+        hit.matIndex = tex1Dfetch<int>(bvhCompact->matIndicesTexture, hit.index);
+        hit.index = tex1Dfetch<int>(bvhCompact->triIndicesTexture, hit.index);
+
+        normalize(hit, this);
+        hitPoint(hit, this);
     }
 
-    normalize(hit, this);
-    hitPoint(hit, this);
-
     return hit;
+}
+
+Hit Ray::intersect(const GeometryCompact *geometryCompact, bool needClosestHit) {
+    Hit hit, closestHit;
+    closestHit.distance = tMax;
+    hit.distance = tMax;
+    for (int i = 0; i < geometryCompact->geometriesSize; i++) {
+        Geometry *geometry = geometryCompact->geometries[i];
+        switch (geometry->type) {
+            case SPHERE:
+                hit = ((Sphere *) geometry)->intersect(*this);
+                break;
+            case CUBE:
+                break;
+            case PLANE:
+                break;
+            case MESH:
+                break;
+        }
+
+        if (hit.distance < tMax) {
+            hit.index = i;
+            if (!needClosestHit) {
+                closestHit = hit;
+                break;
+            } else if (hit < closestHit) {
+                closestHit = hit;
+            }
+        }
+    }
+
+    if (closestHit.index != -1) {
+        closestHit.matIndex = geometryCompact->matIndices[closestHit.index].x;
+        normalize(closestHit, this);
+        hitPoint(hit, this);
+    }
+
+    return closestHit;
 }
 

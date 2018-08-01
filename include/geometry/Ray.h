@@ -6,11 +6,14 @@
 #include <geometry/Hit.h>
 #include <math/LinearMath.h>
 #include <bvh/BVHCompact.h>
+#include <geometry/GeometryCompact.h>
 
 #define STACK_SIZE  64  // Size of the traversal stack in local memory.
 #define EntrypointSentinel 0x76543210
 
 class BVHCompact;
+
+class GeometryCompact;
 
 class Ray {
 public:
@@ -28,7 +31,10 @@ public:
             origin(ray.origin), direction(ray.direction), tMin(ray.tMin), tMax(ray.tMax) {
 
     }
-    __device__ Hit intersect(const BVHCompact *bvh, bool needClosestHit);
+
+    __device__ Hit intersect(const BVHCompact *bvhCompact, bool needClosestHit);
+
+    __device__ Hit intersect(const GeometryCompact *geometryCompact, bool needClosestHit);
 
 };
 
