@@ -22,7 +22,7 @@ __device__ Ray Spec::sample(curandState *randState, const Ray &ray, const Hit &h
     nextRay.direction.normalize();
 
     // offset origin next path segment to prevent self intersection
-    nextRay.origin + hit.point + hit.nl * 0.001f;
+    nextRay.origin = hit.point + hit.nl * 0.001f;
 
     // multiply mask with colour of object
     mask *= color;

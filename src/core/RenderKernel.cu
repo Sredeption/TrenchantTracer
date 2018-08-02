@@ -41,10 +41,6 @@ __device__ __inline__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEn
             return accumulatedColor;
         }
 
-        // TRIANGLES:
-        emit = Vec3f(0.0, 0.0, 0);  // object emission
-        accumulatedColor += (mask * emit);
-
         Material *material = materialCompact->materials[hit.matIndex];
         switch (material->type) {
             case COAT:
