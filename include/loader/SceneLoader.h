@@ -11,6 +11,7 @@
 #include <loader/OBJLoader.h>
 #include <loader/HDRLoader.h>
 #include <geometry/Sphere.h>
+#include <geometry/Plane.h>
 
 class SceneLoader {
     Config *config;

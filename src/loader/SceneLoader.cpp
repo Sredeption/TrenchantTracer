@@ -30,6 +30,8 @@ Group *SceneLoader::loadGeometry(nlohmann::json &text, MaterialPool *pool) {
     Geometry *geometry = nullptr;
     if (text[Geometry::TYPE] == Sphere::TYPE) {
         geometry = new Sphere(text);
+    } else if (text[Geometry::TYPE] == Plane::TYPE) {
+        geometry = new Plane(text);
     }
     auto group = new Group("", geometry);
     auto material = pool->get(text["material"]);

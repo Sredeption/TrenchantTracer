@@ -1,5 +1,6 @@
 #include <geometry/Ray.h>
 #include <geometry/Sphere.h>
+#include <geometry/Plane.h>
 
 
 //  RAY BOX INTERSECTION ROUTINES
@@ -287,6 +288,7 @@ Hit Ray::intersect(const GeometryCompact *geometryCompact, bool needClosestHit) 
     Hit hit, closestHit;
     closestHit.distance = tMax;
     hit.distance = tMax;
+    bool ge = false;
     for (int i = 0; i < geometryCompact->geometriesSize; i++) {
         Geometry *geometry = geometryCompact->geometries[i];
         switch (geometry->type) {
@@ -296,6 +298,7 @@ Hit Ray::intersect(const GeometryCompact *geometryCompact, bool needClosestHit) 
             case CUBE:
                 break;
             case PLANE:
+                hit = ((Plane *) geometry)->intersect(*this);
                 break;
             case MESH:
                 break;
@@ -307,6 +310,7 @@ Hit Ray::intersect(const GeometryCompact *geometryCompact, bool needClosestHit) 
                 closestHit = hit;
                 break;
             } else if (hit < closestHit) {
+                ge = geometry->type == PLANE;
                 closestHit = hit;
             }
         }
@@ -315,7 +319,7 @@ Hit Ray::intersect(const GeometryCompact *geometryCompact, bool needClosestHit) 
     if (closestHit.index != -1) {
         closestHit.matIndex = geometryCompact->matIndices[closestHit.index].x;
         normalize(closestHit, this);
-        hitPoint(hit, this);
+        hitPoint(closestHit, this);
     }
 
     return closestHit;
