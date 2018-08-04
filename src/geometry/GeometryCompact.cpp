@@ -58,7 +58,7 @@ __host__ void GeometryCompact::save(const std::string &fileName) {
     free(cpuGeometries);
 
     auto cpuMatIndices = (int1 *) malloc(geometriesSize * sizeof(int1));
-    cudaMemcpy(cpuMatIndices, geometries, geometriesSize * sizeof(int1), cudaMemcpyDeviceToHost);
+    cudaMemcpy(cpuMatIndices, matIndices, geometriesSize * sizeof(int1), cudaMemcpyDeviceToHost);
     if (geometriesSize != fwrite(cpuMatIndices, sizeof(int1), geometriesSize, geoFile))
         std::runtime_error("Error writing material cache file!\n");
     free(cpuMatIndices);
