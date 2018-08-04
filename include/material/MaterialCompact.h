@@ -2,15 +2,14 @@
 #define TRENCHANTTRACER_MATERIALCOMPACT_H
 
 
+#include <material/MaterialUnion.h>
 #include <core/Scene.h>
 
 class Scene;
 
 class MaterialCompact {
 public:
-    Material **cpuMaterials;
-    Material **materials; //device memory
-    U32 *materialLength;
+    MaterialUnion *materials; //device memory
 
     U32 materialsSize;
 

@@ -2,17 +2,10 @@
 #define TRENCHANTTRACER_RAY_H
 
 
-#include <geometry/Hit.h>
 #include <math/LinearMath.h>
-#include <bvh/BVHCompact.h>
-#include <geometry/GeometryCompact.h>
 
-#define STACK_SIZE  64  // Size of the traversal stack in local memory.
-#define EntrypointSentinel 0x76543210
 
 class BVHCompact;
-
-class GeometryCompact;
 
 class Ray {
 public:

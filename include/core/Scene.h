@@ -3,7 +3,6 @@
 
 
 #include <core/Object.h>
-#include <core/HDRImage.h>
 #include <util/Array.h>
 #include <math/LinearMath.h>
 

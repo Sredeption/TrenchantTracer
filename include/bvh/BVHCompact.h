@@ -2,7 +2,7 @@
 #define TRENCHANTTRACER_BVHHOLDER_H
 
 
-#include <host_defines.h>
+#include <cuda_runtime.h>
 
 #include <bvh/BVH.h>
 #include <math/LinearMath.h>

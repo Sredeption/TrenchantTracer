@@ -12,7 +12,7 @@
 #include <string>
 #include <stdexcept>
 
-#include <core/HDRImage.h>
+#include <hdr/HDRImage.h>
 
 class HDRLoader {
 private:

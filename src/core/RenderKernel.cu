@@ -3,16 +3,18 @@
 #include <device_launch_parameters.h>
 #include <curand_kernel.h>
 
-#include <geometry/IntersectKernel.cuh>
+#include <hdr/HDRImage.h>
 #include <math/CutilMath.h>
+#include <geometry/IntersectKernel.cuh>
 #include <geometry/Ray.h>
+#include <geometry/GeometryCompact.h>
+#include <geometry/SphereImpl.cuh>
+#include <geometry/PlaneImpl.cuh>
 #include <material/CoatImpl.cuh>
 #include <material/DiffImpl.cuh>
 #include <material/MetalImpl.cuh>
 #include <material/SpecImpl.cuh>
 #include <material/RefrImpl.cuh>
-#include <geometry/SphereImpl.cuh>
-#include <geometry/PlaneImpl.cuh>
 
 // union struct required for mapping pixel colours to OpenGL buffer
 union Color  // 4 bytes = 4 chars = 1 float
@@ -68,7 +70,7 @@ __device__ __inline__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEn
         normalize(hit, ray);
         hitPoint(hit, ray);
 
-        Material *material = materialCompact->materials[hit.matIndex];
+        Material *material = (Material *) (materialCompact->materials + hit.matIndex);
         switch (material->type) {
             case COAT:
                 ray = coatSample((Coat *) material, randState, ray, hit, mask);

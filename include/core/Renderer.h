@@ -10,20 +10,16 @@
 
 #include <core/Scene.h>
 #include <core/Camera.h>
+#include <hdr/HDRImage.h>
 #include <math/LinearMath.h>
 #include <control/Controller.h>
 #include <util/Config.h>
 #include <util/WangHash.h>
 #include <bvh/BVHCompact.h>
 #include <material/MaterialCompact.h>
+#include <geometry/GeometryCompact.h>
 
 class HDRImage;
-
-class BVHCompact;
-
-class GeometryCompact;
-
-class MaterialCompact;
 
 struct RenderMeta {
     int frameNumber;

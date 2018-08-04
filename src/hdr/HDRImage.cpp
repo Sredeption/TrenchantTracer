@@ -1,4 +1,4 @@
-#include <core/HDRImage.h>
+#include <hdr/HDRImage.h>
 #include <iostream>
 #include <cstring>
 

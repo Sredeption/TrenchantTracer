@@ -2,14 +2,8 @@
 #define TRENCHANTTRACER_COAT_H
 
 
-#include <cuda_runtime.h>
-#include <curand_kernel.h>
-
 #include <json.hpp>
 
-#include <geometry/Ray.h>
-#include <geometry/Hit.h>
-#include <math/LinearMath.h>
 #include <material/Material.h>
 
 class Ray;

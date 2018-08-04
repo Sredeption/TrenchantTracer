@@ -1,5 +1,11 @@
 #include <loader/MaterialLoader.h>
 
+#include <material/Coat.h>
+#include <material/Diff.h>
+#include <material/Metal.h>
+#include <material/Spec.h>
+#include <material/Refr.h>
+
 MaterialPool *MaterialLoader::load(std::string fileName) {
 
     auto pool = new MaterialPool();

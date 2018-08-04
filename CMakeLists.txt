@@ -19,7 +19,7 @@ include_directories(lib/include)
 
 set(CUDA_SRC
         src/core/RenderKernel.cu
-        src/core/HDRKernel.cu
+        src/hdr/HDRKernel.cu
         src/geometry/Sphere.cu
         src/geometry/Plane.cu)
 
@@ -41,8 +41,8 @@ add_executable(TrenchantTracer
         include/util/Config.h
         src/loader/HDRLoader.cpp
         include/loader/HDRLoader.h
-        src/core/HDRImage.cpp
-        include/core/HDRImage.h
+        src/hdr/HDRImage.cpp
+        include/hdr/HDRImage.h
         src/core/Renderer.cpp
         include/core/Renderer.h
         src/util/WangHash.cpp
@@ -111,7 +111,7 @@ add_executable(TrenchantTracer
         src/material/Spec.cpp
         src/material/Refr.cpp
         include/geometry/IntersectKernel.cuh
-        include/geometry/PlaneImpl.cuh include/geometry/SphereImpl.cuh)
+        include/geometry/PlaneImpl.cuh include/geometry/SphereImpl.cuh include/material/MaterialUnion.h)
 
 target_link_libraries(TrenchantTracer
         ${CUDA_LIBRARIES}

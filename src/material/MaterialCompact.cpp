@@ -2,70 +2,44 @@
 
 MaterialCompact::MaterialCompact(Scene *scene) {
     materialsSize = (U32) scene->getMaterialNum();
-    materialLength = (U32 *) malloc(materialsSize * sizeof(U32));
-    cpuMaterials = (Material **) malloc(materialsSize * sizeof(Material *));
+    cudaMalloc(&materials, materialsSize * sizeof(MaterialUnion));
 
     for (int i = 0; i < materialsSize; i++) {
         const Material *material = scene->getMaterial(i);
-        materialLength[i] = material->size();
-        cudaMalloc(cpuMaterials + i, materialLength[i]);
-        cudaMemcpy(cpuMaterials[i], material, materialLength[i], cudaMemcpyHostToDevice);
+        cudaMemcpy(materials + i, material, material->size(), cudaMemcpyHostToDevice);
     }
-
-    cudaMalloc(&materials, materialsSize * sizeof(Material *));
-    cudaMemcpy(materials, cpuMaterials, materialsSize * sizeof(Material *), cudaMemcpyHostToDevice);
 }
 
 MaterialCompact::MaterialCompact(FILE *matFile) {
     if (1 != fread(&materialsSize, sizeof(unsigned), 1, matFile))
         throw std::runtime_error("Error reading material cache file!\n");
-    materialLength = (U32 *) malloc(materialsSize * sizeof(U32));
-    cpuMaterials = (Material **) malloc(materialsSize * sizeof(Material *));
 
-    for (int i = 0; i < materialsSize; i++) {
-        if (1 != fread(materialLength + i, sizeof(unsigned), 1, matFile))
-            throw std::runtime_error("Error reading material cache file!\n");
+    auto cpuMaterials = (MaterialUnion *) malloc(materialsSize * sizeof(MaterialUnion));
+    if (materialsSize != fread(cpuMaterials, sizeof(MaterialUnion), materialsSize, matFile))
+        throw std::runtime_error("Error reading BVH cache file!\n");
 
-        auto material = (Material *) malloc(materialLength[i]);
-        cudaMalloc(cpuMaterials + i, materialLength[i]);
+    cudaMalloc(&materials, materialsSize * sizeof(MaterialUnion));
+    cudaMemcpy(materials, cpuMaterials, materialsSize * sizeof(MaterialUnion), cudaMemcpyHostToDevice);
 
-        if (1 != fread(material, materialLength[i], 1, matFile))
-            throw std::runtime_error("Error reading material cache file!\n");
-        cudaMemcpy(cpuMaterials[i], material, materialLength[i], cudaMemcpyHostToDevice);
-
-        free(material);
-    }
-
-    cudaMalloc(&materials, materialsSize * sizeof(Material *));
-    cudaMemcpy(materials, cpuMaterials, materialsSize * sizeof(Material *), cudaMemcpyHostToDevice);
+    free(cpuMaterials);
     fclose(matFile);
 }
 
 MaterialCompact::~MaterialCompact() {
-    for (int i = 0; i < materialsSize; i++)
-        cudaFree(cpuMaterials[i]);
-    free(cpuMaterials);
-    free(materialLength);
     cudaFree(materials);
 }
 
 __host__ void MaterialCompact::save(const std::string &fileName) {
     FILE *matFile = fopen(fileName.c_str(), "wb");
     if (!matFile)
-        throw std::runtime_error("Error opening BVH cache file!");
+        throw std::runtime_error("Error opening material cache file!");
 
     if (1 != fwrite(&materialsSize, sizeof(unsigned), 1, matFile))
-        throw std::runtime_error("Error writing BVH cache file!\n");
+        throw std::runtime_error("Error writing material cache file!\n");
 
-    for (int i = 0; i < materialsSize; i++) {
-        if (1 != fwrite(materialLength + i, sizeof(unsigned), 1, matFile))
-            throw std::runtime_error("Error writing BVH cache file!\n");
-        auto material = (Material *) malloc(materialLength[i]);
-
-        cudaMemcpy(material, cpuMaterials[i], materialLength[i], cudaMemcpyDeviceToHost);
-        if (1 != fwrite(material, materialLength[i], 1, matFile))
-            std::runtime_error("Error writing BVH cache file!\n");
-
-        free(material);
-    }
+    auto cpuMaterials = (MaterialUnion *) malloc(materialsSize * sizeof(MaterialUnion));
+    cudaMemcpy(cpuMaterials, materials, materialsSize * sizeof(MaterialUnion), cudaMemcpyDeviceToHost);
+    if (materialsSize != fwrite(cpuMaterials, sizeof(MaterialUnion), materialsSize, matFile))
+        std::runtime_error("Error writing material cache file!\n");
+    free(cpuMaterials);
 }

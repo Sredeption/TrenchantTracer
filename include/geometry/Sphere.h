@@ -19,7 +19,6 @@ public:
 
     __host__ U32 size() const override;
 
-    __device__ Hit intersect(const Ray &ray) const;
 
 };
 

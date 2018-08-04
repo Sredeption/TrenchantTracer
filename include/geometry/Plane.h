@@ -6,7 +6,6 @@
 #include <json.hpp>
 #include <math/LinearMath.h>
 #include <geometry/Geometry.h>
-#include <geometry/Ray.h>
 
 class Plane : public Geometry {
 public:
@@ -19,7 +18,6 @@ public:
 
     __host__ U32 size() const override;
 
-    __device__ Hit intersect(const Ray &ray) const;
 };
 
 

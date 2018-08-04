@@ -1,4 +1,4 @@
-#include <core/HDRImage.h>
+#include <hdr/HDRImage.h>
 
 __device__ Vec3f HDRImage::sample(const Ray &ray,RenderMeta *renderMeta) {
     // if ray misses scene, return sky

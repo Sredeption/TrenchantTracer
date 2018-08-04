@@ -1,13 +1,9 @@
 #ifndef TRENCHANTTRACER_DIFF_H
 #define TRENCHANTTRACER_DIFF_H
 
-#include <cuda_runtime.h>
-#include <curand_kernel.h>
 
-#include <geometry/Ray.h>
-#include <geometry/Hit.h>
+#include <material/Material.h>
 #include <math/LinearMath.h>
-#include "Material.h"
 
 // diffuse material, based on smallpt by Kevin Beason
 class Diff : public Material {

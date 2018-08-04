@@ -1,5 +1,4 @@
 #include <bvh/BVHCompact.h>
-#include <driver_types.h>
 
 //Nodes / BVHLayout_Compact  (12 floats + 4 ints = 64 bytes)
 // inner node contains two child nodes c0 and c1, each having x,y,z coordinates for AABBhi and AABBlo, 2*2*3 = 12 floats

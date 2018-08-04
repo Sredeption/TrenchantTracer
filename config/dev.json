@@ -5,8 +5,8 @@
   "material-file": "data/master.mtl",
   "hdr-file-name": "data/Topanga_Forest_B_3k.hdr",
   "obj-file-name": "data/dragon.obj",
-  "bvh-reload": false,
-  "material-reload": false,
+  "bvh-reload": true,
+  "material-reload": true,
   "objects": [
     {
       "type": "Sphere",

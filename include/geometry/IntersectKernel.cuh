@@ -2,6 +2,10 @@
 #define TRENCHANTTRACER_INTERSECTKERNEL_H
 
 #include <geometry/Ray.h>
+#include <geometry/Hit.h>
+
+#define STACK_SIZE  64  // Size of the traversal stack in local memory.
+#define EntrypointSentinel 0x76543210
 
 //  RAY BOX INTERSECTION ROUTINES
 
