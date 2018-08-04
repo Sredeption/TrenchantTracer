@@ -4,14 +4,12 @@
 
 #include <core/Scene.h>
 #include <geometry/Geometry.h>
+#include <geometry/GeometryUnion.h>
 
 class GeometryCompact {
 public:
-    Geometry **cpuGeometries;
-    Geometry **geometries; // device memory
+    GeometryUnion *geometries; // device memory
     int1 *matIndices; // device memory
-    U32 *geometryLength;
-
     U32 geometriesSize;
 
     __host__ explicit GeometryCompact(Scene *scene);

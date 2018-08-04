@@ -16,7 +16,7 @@ MaterialCompact::MaterialCompact(FILE *matFile) {
 
     auto cpuMaterials = (MaterialUnion *) malloc(materialsSize * sizeof(MaterialUnion));
     if (materialsSize != fread(cpuMaterials, sizeof(MaterialUnion), materialsSize, matFile))
-        throw std::runtime_error("Error reading BVH cache file!\n");
+        throw std::runtime_error("Error reading material cache file!\n");
 
     cudaMalloc(&materials, materialsSize * sizeof(MaterialUnion));
     cudaMemcpy(materials, cpuMaterials, materialsSize * sizeof(MaterialUnion), cudaMemcpyHostToDevice);

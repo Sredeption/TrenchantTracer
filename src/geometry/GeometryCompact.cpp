@@ -2,58 +2,39 @@
 
 __host__ GeometryCompact::GeometryCompact(Scene *scene) {
     geometriesSize = (U32) scene->getGeometryNum();
-    geometryLength = (U32 *) malloc(geometriesSize * sizeof(U32));
-    cpuGeometries = (Geometry **) malloc(geometriesSize * sizeof(Geometry *));
     cudaMalloc(&matIndices, geometriesSize * sizeof(int1));
+    cudaMalloc(&geometries, geometriesSize * sizeof(GeometryUnion));
 
     for (int i = 0; i < geometriesSize; i++) {
         const Geometry *geometry = scene->getGeometry(i)->getGeometry();
         const Material *material = scene->getGeometry(i)->getMaterial();
-        geometryLength[i] = geometry->size();
-        cudaMalloc(cpuGeometries + i, geometryLength[i]);
-        cudaMemcpy(cpuGeometries[i], geometry, geometryLength[i], cudaMemcpyHostToDevice);
+        cudaMemcpy(geometries + i, geometry, geometry->size(), cudaMemcpyHostToDevice);
         cudaMemcpy(matIndices + i, &material->index, sizeof(int1), cudaMemcpyHostToDevice);
     }
-
-    cudaMalloc(&geometries, geometriesSize * sizeof(Geometry *));
-    cudaMemcpy(geometries, cpuGeometries, geometriesSize * sizeof(Geometry *), cudaMemcpyHostToDevice);
 }
 
 __host__ GeometryCompact::GeometryCompact(FILE *geoFile) {
     if (1 != fread(&geometriesSize, sizeof(unsigned), 1, geoFile))
         throw std::runtime_error("Error reading geometry cache file!\n");
-    geometryLength = (U32 *) malloc(geometriesSize * sizeof(U32));
-    cpuGeometries = (Geometry **) malloc(geometriesSize * sizeof(Geometry *));
+
+    cudaMalloc(&geometries, geometriesSize * sizeof(GeometryUnion));
+    auto cpuGeometries = (GeometryUnion *) malloc(geometriesSize * sizeof(GeometryUnion));
+    if (geometriesSize != fread(cpuGeometries, sizeof(GeometryUnion), geometriesSize, geoFile))
+        throw std::runtime_error("Error reading geometry cache file!\n");
+    cudaMemcpy(geometries, cpuGeometries, geometriesSize * sizeof(GeometryUnion), cudaMemcpyHostToDevice);
+    free(cpuGeometries);
+
     cudaMalloc(&matIndices, geometriesSize * sizeof(int1));
+    auto cpuMatIndices = (int1 *) malloc(geometriesSize * sizeof(int1));
+    if (geometriesSize != fread(cpuMatIndices, sizeof(int1), geometriesSize, geoFile))
+        throw std::runtime_error("Error reading geometry cache file!\n");
+    cudaMemcpy(matIndices, cpuMatIndices, geometriesSize * sizeof(int1), cudaMemcpyHostToDevice);
+    free(cpuMatIndices);
 
-    for (int i = 0; i < geometriesSize; i++) {
-        if (1 != fread(geometryLength + i, sizeof(unsigned), 1, geoFile))
-            throw std::runtime_error("Error reading geometry cache file!\n");
-
-        auto geometry = (Geometry *) malloc(geometryLength[i]);
-        cudaMalloc(cpuGeometries + i, geometryLength[i]);
-
-        if (1 != fread(geometry, geometryLength[i], 1, geoFile))
-            throw std::runtime_error("Error reading geometry cache file!\n");
-        cudaMemcpy(cpuGeometries[i], geometry, geometryLength[i], cudaMemcpyHostToDevice);
-
-        int1 matIndex;
-        if (1 != fread(&matIndex, sizeof(int1), 1, geoFile))
-            std::runtime_error("Error reading geometry cache file!\n");
-        cudaMemcpy(matIndices + i, &matIndex, sizeof(int1), cudaMemcpyHostToDevice);
-
-        free(geometry);
-    }
-    cudaMalloc(&geometries, geometriesSize * sizeof(Geometry *));
-    cudaMemcpy(geometries, cpuGeometries, geometriesSize * sizeof(Geometry *), cudaMemcpyHostToDevice);
     fclose(geoFile);
 }
 
 __host__ GeometryCompact::~GeometryCompact() {
-    for (int i = 0; i < geometriesSize; i++)
-        cudaFree(cpuGeometries[i]);
-    free(cpuGeometries);
-    free(geometryLength);
     cudaFree(matIndices);
     cudaFree(geometries);
 }
@@ -66,20 +47,17 @@ __host__ void GeometryCompact::save(const std::string &fileName) {
     if (1 != fwrite(&geometriesSize, sizeof(unsigned), 1, geoFile))
         throw std::runtime_error("Error writing geometry cache file!\n");
 
-    for (int i = 0; i < geometriesSize; i++) {
-        if (1 != fwrite(geometryLength + i, sizeof(unsigned), 1, geoFile))
-            throw std::runtime_error("Error writing geometry cache file!\n");
-        auto geometry = (Geometry *) malloc(geometryLength[i]);
+    auto cpuGeometries = (GeometryUnion *) malloc(geometriesSize * sizeof(GeometryUnion));
+    cudaMemcpy(cpuGeometries, geometries, geometriesSize * sizeof(GeometryUnion), cudaMemcpyDeviceToHost);
+    if (geometriesSize != fwrite(cpuGeometries, sizeof(GeometryUnion), geometriesSize, geoFile))
+        std::runtime_error("Error writing geometry cache file!\n");
+    free(cpuGeometries);
 
-        cudaMemcpy(geometry, cpuGeometries[i], geometryLength[i], cudaMemcpyDeviceToHost);
-        if (1 != fwrite(geometry, geometryLength[i], 1, geoFile))
-            std::runtime_error("Error writing geometry cache file!\n");
+    auto cpuMatIndices = (int1 *) malloc(geometriesSize * sizeof(int1));
+    cudaMemcpy(cpuMatIndices, geometries, geometriesSize * sizeof(int1), cudaMemcpyDeviceToHost);
+    if (geometriesSize != fwrite(cpuMatIndices, sizeof(int1), geometriesSize, geoFile))
+        std::runtime_error("Error writing material cache file!\n");
+    free(cpuMatIndices);
 
-        int1 matIndex;
-        cudaMemcpy(&matIndex, matIndices + i, sizeof(int1), cudaMemcpyDeviceToHost);
-        if (1 != fwrite(&matIndex, sizeof(int1), 1, geoFile))
-            std::runtime_error("Error writing geometry cache file!\n");
-        free(geometry);
-    }
     fclose(geoFile);
 }

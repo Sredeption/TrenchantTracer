@@ -38,7 +38,7 @@ __device__ __inline__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEn
         Hit geometryHit;
         geometryHit.distance = ray.tMax;
         for (int i = 0; i < geometryCompact->geometriesSize; i++) {
-            Geometry *geometry = geometryCompact->geometries[i];
+            Geometry *geometry = (Geometry *) (geometryCompact->geometries + i);
             switch (geometry->type) {
                 case SPHERE:
                     geometryHit = sphereIntersect((Sphere *) geometry, ray);

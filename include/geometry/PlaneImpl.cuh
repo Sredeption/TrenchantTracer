@@ -5,6 +5,7 @@
 #include <cuda_runtime.h>
 
 #include <geometry/Ray.h>
+#include <geometry/Hit.h>
 
 __device__ __forceinline__ Hit planeIntersect(const Plane *plane, const Ray &ray) {
     // Möller–Trumbore intersection algorithm

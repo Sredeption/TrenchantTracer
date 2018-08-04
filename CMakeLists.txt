@@ -110,7 +110,7 @@ add_executable(TrenchantTracer
         src/material/Spec.cpp
         src/material/Refr.cpp
         include/geometry/IntersectKernel.cuh
-        include/geometry/PlaneImpl.cuh include/geometry/SphereImpl.cuh include/material/MaterialUnion.h include/hdr/HDRKernel.cuh)
+        include/geometry/PlaneImpl.cuh include/geometry/SphereImpl.cuh include/material/MaterialUnion.h include/hdr/HDRKernel.cuh include/geometry/GeometryUnion.h)
 
 target_link_libraries(TrenchantTracer
         ${CUDA_LIBRARIES}

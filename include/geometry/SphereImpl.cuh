@@ -6,6 +6,7 @@
 #include <cuda_runtime.h>
 
 #include <geometry/Ray.h>
+#include <geometry/Hit.h>
 
 __device__ __forceinline__ Hit sphereIntersect(const Sphere *sphere, const Ray &ray) {
     Hit hit;
