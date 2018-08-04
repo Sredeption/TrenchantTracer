@@ -76,6 +76,7 @@ BVHCompact::BVHCompact(FILE *bvhFile) {
     free(cpuTriIndices);
 
     createTexture();
+    fclose(bvhFile);
 }
 
 __host__ BVHCompact::~BVHCompact() {

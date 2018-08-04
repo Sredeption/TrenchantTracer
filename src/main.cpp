@@ -42,12 +42,15 @@ int main(int argc, char **argv) {
 
     std::string bvhFileName = config->objFileName + ".bvh";
     std::string matFileName = config->objFileName + ".mat";
+    std::string geoFileName = config->objFileName + ".geo";
     FILE *bvhFile = nullptr;
     if (!config->bvhReload)
         bvhFile = fopen(bvhFileName.c_str(), "rb");
     FILE *matFile = nullptr;
     if (!config->materialReload)
         matFile = fopen(matFileName.c_str(), "rb");
+    FILE *geoFile = nullptr;
+    geoFile = fopen(geoFileName.c_str(), "rb");
 
     BVHCompact *bvhCompact;
     MaterialCompact *materialCompact;
@@ -58,6 +61,7 @@ int main(int argc, char **argv) {
         Scene *scene = sceneLoader.load();
 
         geometryCompact = new GeometryCompact(scene);
+        geometryCompact->save(geoFileName);
 
         materialCompact = new MaterialCompact(scene);
         materialCompact->save(matFileName);
@@ -77,6 +81,7 @@ int main(int argc, char **argv) {
     } else {
         bvhCompact = new BVHCompact(bvhFile);
         materialCompact = new MaterialCompact(matFile);
+        geometryCompact = new GeometryCompact(geoFile);
     }
 
     // initialize GLUT

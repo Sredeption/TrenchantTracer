@@ -16,7 +16,11 @@ public:
 
     __host__ explicit GeometryCompact(Scene *scene);
 
-    ~GeometryCompact();
+    __host__ explicit GeometryCompact(FILE *geoFile);
+
+    __host__ ~GeometryCompact();
+
+    __host__ void save(const std::string &fileName);
 };
 
 
