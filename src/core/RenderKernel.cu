@@ -4,6 +4,7 @@
 #include <curand_kernel.h>
 
 #include <hdr/HDRImage.h>
+#include <hdr/HDRKernel.cuh>
 #include <math/CutilMath.h>
 #include <geometry/IntersectKernel.cuh>
 #include <geometry/Ray.h>
@@ -62,7 +63,7 @@ __device__ __inline__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEn
 
 
         if (hit.distance > 1e19) {
-            emit = hdrEnv->sample(ray, renderMeta);
+            emit = hdrSample(hdrEnv, ray, renderMeta);
             accumulatedColor += (mask * emit);
             return accumulatedColor;
         }

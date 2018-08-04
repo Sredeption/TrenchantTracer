@@ -1,6 +1,9 @@
+#ifndef TRENCHANTTRACER_HDRKERNEL_CUH_H
+#define TRENCHANTTRACER_HDRKERNEL_CUH_H
+
 #include <hdr/HDRImage.h>
 
-__device__ Vec3f HDRImage::sample(const Ray &ray,RenderMeta *renderMeta) {
+__device__ __inline__ Vec3f hdrSample(const HDRImage *hdrImage, const Ray &ray, RenderMeta *renderMeta) {
     // if ray misses scene, return sky
     // HDR environment map code based on Syntopia "Path tracing 3D fractals"
     // http://blog.hvidtfeldts.net/index.php/2015/01/path-tracing-3d-fractals/
@@ -25,16 +28,17 @@ __device__ Vec3f HDRImage::sample(const Ray &ray,RenderMeta *renderMeta) {
     float v = longlatY / renderMeta->PI;
 
     // map u, v to integer coordinates
-    int u2 = (int) (u * width);
-    int v2 = (int) (v * height);
+    auto u2 = (int) (u * hdrImage->width);
+    auto v2 = (int) (v * hdrImage->height);
 
     // compute the texture index in the HDR map
-    int hdrTextureIdx = u2 + v2 * width;
+    int hdrTextureIdx = u2 + v2 * hdrImage->width;
 
-    float4 hdrColor = tex1Dfetch<float4>(hdrTexture, hdrTextureIdx);  // fetch from texture
+    float4 hdrColor = tex1Dfetch<float4>(hdrImage->hdrTexture, hdrTextureIdx);  // fetch from texture
 
     Vec3f hdrColor3 = Vec3f(hdrColor.x, hdrColor.y, hdrColor.z);
 
     return hdrColor3 * 2.0f;
 }
 
+#endif //TRENCHANTTRACER_HDRKERNEL_CUH_H

@@ -19,7 +19,6 @@ include_directories(lib/include)
 
 set(CUDA_SRC
         src/core/RenderKernel.cu
-        src/hdr/HDRKernel.cu
         src/geometry/Sphere.cu
         src/geometry/Plane.cu)
 
@@ -111,7 +110,7 @@ add_executable(TrenchantTracer
         src/material/Spec.cpp
         src/material/Refr.cpp
         include/geometry/IntersectKernel.cuh
-        include/geometry/PlaneImpl.cuh include/geometry/SphereImpl.cuh include/material/MaterialUnion.h)
+        include/geometry/PlaneImpl.cuh include/geometry/SphereImpl.cuh include/material/MaterialUnion.h include/hdr/HDRKernel.cuh)
 
 target_link_libraries(TrenchantTracer
         ${CUDA_LIBRARIES}

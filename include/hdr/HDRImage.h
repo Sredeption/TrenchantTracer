@@ -28,8 +28,6 @@ public:
 
     ~HDRImage();
 
-    __device__ Vec3f sample(const Ray &ray, RenderMeta *renderMeta);
-
 };
 
 
