@@ -7,10 +7,13 @@
 #include <geometry/GeometryUnion.h>
 
 class GeometryCompact {
+private:
+    __host__ void createTexture();
 public:
     GeometryUnion *geometries; // device memory
     int1 *matIndices; // device memory
     U32 geometriesSize;
+    cudaTextureObject_t matIndicesTexture;
 
     __host__ explicit GeometryCompact(Scene *scene);
 

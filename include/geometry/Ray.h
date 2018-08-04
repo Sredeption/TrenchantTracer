@@ -5,8 +5,6 @@
 #include <math/LinearMath.h>
 
 
-class BVHCompact;
-
 class Ray {
 public:
     Vec3f origin;

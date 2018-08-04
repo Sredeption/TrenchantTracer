@@ -55,7 +55,7 @@ __device__ __inline__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEn
             if (geometryHit.distance < ray.tMax) {
                 geometryHit.index = i;
                 if (geometryHit < hit) {
-                    geometryHit.matIndex = geometryCompact->matIndices[geometryHit.index].x;
+                    geometryHit.matIndex = tex1Dfetch<int>(geometryCompact->matIndicesTexture, geometryHit.index);
                     hit = geometryHit;
                 }
             }
