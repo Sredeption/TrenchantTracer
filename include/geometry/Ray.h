@@ -32,10 +32,6 @@ public:
 
     }
 
-    __device__ Hit intersect(const BVHCompact *bvhCompact, bool needClosestHit);
-
-    __device__ Hit intersect(const GeometryCompact *geometryCompact, bool needClosestHit);
-
 };
 
 

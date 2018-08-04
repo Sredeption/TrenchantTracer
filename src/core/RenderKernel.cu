@@ -2,6 +2,8 @@
 
 #include <device_launch_parameters.h>
 #include <curand_kernel.h>
+
+#include <geometry/IntersectKernel.cuh>
 #include <math/CutilMath.h>
 #include <geometry/Ray.h>
 #include <material/CoatImpl.cuh>
@@ -27,8 +29,8 @@ __device__ __inline__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEn
 
     for (int bounces = 0; bounces < 4; bounces++) {
         // iteration up to 4 bounces (instead of recursion in CPU code)
-        Hit hit = ray.intersect(bvhCompact, true);
-        Hit geometryHit = ray.intersect(geometryCompact, true);
+        Hit hit = intersect(ray, bvhCompact, true);
+        Hit geometryHit = intersect(ray, geometryCompact, true);
 
         if (geometryHit < hit) {
             hit = geometryHit;

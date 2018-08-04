@@ -1,3 +1,6 @@
+#ifndef TRENCHANTTRACER_INTERSECTKERNEL_H
+#define TRENCHANTTRACER_INTERSECTKERNEL_H
+
 #include <geometry/Ray.h>
 #include <geometry/Sphere.h>
 #include <geometry/Plane.h>
@@ -60,17 +63,17 @@ __device__ __inline__ void swap2(int &a, int &b) {
     b = temp;
 }
 
-__device__ __inline__ void normalize(Hit &hit, const Ray *ray) {
+__device__ __inline__ void normalize(Hit &hit, const Ray &ray) {
     hit.n = hit.normal;
     hit.n.normalize();
-    hit.nl = dot(hit.n, ray->direction) < 0 ? hit.n : hit.n * -1;  // correctly oriented normal
+    hit.nl = dot(hit.n, ray.direction) < 0 ? hit.n : hit.n * -1;  // correctly oriented normal
 }
 
-__device__ __inline__ void hitPoint(Hit &hit, const Ray *ray) {
-    hit.point = ray->origin + ray->direction * hit.distance; // intersection point
+__device__ __inline__ void hitPoint(Hit &hit, const Ray &ray) {
+    hit.point = ray.origin + ray.direction * hit.distance; // intersection point
 }
 
-__device__ Hit Ray::intersect(const BVHCompact *bvhCompact, bool needClosestHit) {
+__device__ __inline__ Hit intersect(const Ray &ray, const BVHCompact *bvhCompact, bool needClosestHit) {
     int traversalStack[STACK_SIZE];
 
     float idirx, idiry, idirz;    // 1 / dir
@@ -81,16 +84,19 @@ __device__ Hit Ray::intersect(const BVHCompact *bvhCompact, bool needClosestHit)
     int leafAddr;
     int nodeAddr;
 
-    hit.distance = tMax;
+    hit.distance = ray.tMax;
 
     // ooeps is very small number, used instead of ray direction xyz component when that component is near zero
     float ooeps = exp2f(-80.0f); // Avoid div by zero, returns 1/2^80, an extremely small number
-    idirx = 1.0f / (fabsf(direction.x) > ooeps ? direction.x : copysignf(ooeps, direction.x)); // inverse ray direction
-    idiry = 1.0f / (fabsf(direction.y) > ooeps ? direction.y : copysignf(ooeps, direction.y)); // inverse ray direction
-    idirz = 1.0f / (fabsf(direction.z) > ooeps ? direction.z : copysignf(ooeps, direction.z)); // inverse ray direction
-    oodx = origin.x * idirx;  // ray origin / ray direction
-    oody = origin.y * idiry;  // ray origin / ray direction
-    oodz = origin.z * idirz;  // ray origin / ray direction
+    // inverse ray direction
+    idirx = 1.0f / (fabsf(ray.direction.x) > ooeps ? ray.direction.x : copysignf(ooeps, ray.direction.x));
+    // inverse ray direction
+    idiry = 1.0f / (fabsf(ray.direction.y) > ooeps ? ray.direction.y : copysignf(ooeps, ray.direction.y));
+    // inverse ray direction
+    idirz = 1.0f / (fabsf(ray.direction.z) > ooeps ? ray.direction.z : copysignf(ooeps, ray.direction.z));
+    oodx = ray.origin.x * idirx;  // ray origin / ray direction
+    oody = ray.origin.y * idiry;  // ray origin / ray direction
+    oodz = ray.origin.z * idirz;  // ray origin / ray direction
 
     traversalStack[0] = EntrypointSentinel; // Bottom-most entry. 0x76543210 is 1985229328 in decimal
     stackPtr = (char *) &traversalStack[0]; // point stackPtr to bottom of traversal stack = EntryPointSentinel
@@ -123,7 +129,7 @@ __device__ Hit Ray::intersect(const BVHCompact *bvhCompact, bool needClosestHit)
             float c0hiz = nz.y * idirz - oodz; // nz.y   = c0.hi.z, child 0 max bound z
             float c1loz = nz.z * idirz - oodz; // nz.z   = c1.lo.z, child 1 min bound z
             float c1hiz = nz.w * idirz - oodz; // nz.w   = c1.hi.z, child 1 max bound z
-            float c0min = spanBeginKepler(c0lox, c0hix, c0loy, c0hiy, c0loz, c0hiz, tMin);
+            float c0min = spanBeginKepler(c0lox, c0hix, c0loy, c0hiy, c0loz, c0hiz, ray.tMin);
             // Tesla does max4(min, min, min, tmin)
             float c0max = spanEndKepler(c0lox, c0hix, c0loy, c0hiy, c0loz, c0hiz, hit.distance);
             // Tesla does min4(max, max, max, tmax)
@@ -131,12 +137,12 @@ __device__ Hit Ray::intersect(const BVHCompact *bvhCompact, bool needClosestHit)
             float c1hix = n1xy.y * idirx - oodx; // n1xy.y = c1.hi.x, child 1 max bound x
             float c1loy = n1xy.z * idiry - oody; // n1xy.z = c1.lo.y, child 1 min bound y
             float c1hiy = n1xy.w * idiry - oody; // n1xy.w = c1.hi.y, child 1 max bound y
-            float c1min = spanBeginKepler(c1lox, c1hix, c1loy, c1hiy, c1loz, c1hiz, tMin);
+            float c1min = spanBeginKepler(c1lox, c1hix, c1loy, c1hiy, c1loz, c1hiz, ray.tMin);
             float c1max = spanEndKepler(c1lox, c1hix, c1loy, c1hiy, c1loz, c1hiz, hit.distance);
 
             float ray_tmax = 1e20;
-            bool traverseChild0 = (c0min <= c0max) && (c0min >= tMin) && (c0min <= ray_tmax);
-            bool traverseChild1 = (c1min <= c1max) && (c1min >= tMin) && (c1min <= ray_tmax);
+            bool traverseChild0 = (c0min <= c0max) && (c0min >= ray.tMin) && (c0min <= ray_tmax);
+            bool traverseChild1 = (c1min <= c1max) && (c1min >= ray.tMin) && (c1min <= ray_tmax);
 
             if (!traverseChild0 && !traverseChild1) {
                 nodeAddr = *(int *) stackPtr; // fetch next node by popping stack
@@ -216,26 +222,27 @@ __device__ Hit Ray::intersect(const BVHCompact *bvhCompact, bool needClosestHit)
 
                 // Compute and check intersection t-value (hit distance along ray).
                 // Origin z
-                float Oz = v00.w - origin.x * v00.x - origin.y * v00.y - origin.z * v00.z;
+                float Oz = v00.w - ray.origin.x * v00.x - ray.origin.y * v00.y - ray.origin.z * v00.z;
                 // inverse Direction z
-                float invDz = 1.0f / (direction.x * v00.x + direction.y * v00.y + direction.z * v00.z);
+                float invDz = 1.0f / (ray.direction.x * v00.x + ray.direction.y * v00.y + ray.direction.z * v00.z);
                 float t = Oz * invDz;
 
-                if (tMin < t && t < hit.distance) {
+                if (ray.tMin < t && t < hit.distance) {
                     // Compute and check barycentric u.
 
                     // fetch second precomputed triangle edge
                     float4 v11 = tex1Dfetch<float4>(bvhCompact->woopTriTexture, triAddr + 1);
-                    float Ox = v11.w + origin.x * v11.x + origin.y * v11.y + origin.z * v11.z;  // Origin.x
-                    float Dx = direction.x * v11.x + direction.y * v11.y + direction.z * v11.z;  // Direction.x
+                    float Ox = v11.w + ray.origin.x * v11.x + ray.origin.y * v11.y + ray.origin.z * v11.z;  // Origin.x
+                    float Dx =
+                            ray.direction.x * v11.x + ray.direction.y * v11.y + ray.direction.z * v11.z;  // Direction.x
                     float u = Ox + t * Dx; // parametric equation of a ray (intersection point)
 
                     if (u >= 0.0f && u <= 1.0f) {
                         // Compute and check barycentric v.
                         // fetch third precomputed triangle edge
                         float4 v22 = tex1Dfetch<float4>(bvhCompact->woopTriTexture, triAddr + 2);
-                        float Oy = v22.w + origin.x * v22.x + origin.y * v22.y + origin.z * v22.z;
-                        float Dy = direction.x * v22.x + direction.y * v22.y + direction.z * v22.z;
+                        float Oy = v22.w + ray.origin.x * v22.x + ray.origin.y * v22.y + ray.origin.z * v22.z;
+                        float Dy = ray.direction.x * v22.x + ray.direction.y * v22.y + ray.direction.z * v22.z;
                         float v = Oy + t * Dy;
 
                         if (v >= 0.0f && u + v <= 1.0f) {
@@ -277,40 +284,38 @@ __device__ Hit Ray::intersect(const BVHCompact *bvhCompact, bool needClosestHit)
         hit.matIndex = tex1Dfetch<int>(bvhCompact->matIndicesTexture, hit.index);
         hit.index = tex1Dfetch<int>(bvhCompact->triIndicesTexture, hit.index);
 
-        normalize(hit, this);
-        hitPoint(hit, this);
+        normalize(hit, ray);
+        hitPoint(hit, ray);
     }
 
     return hit;
 }
 
-Hit Ray::intersect(const GeometryCompact *geometryCompact, bool needClosestHit) {
+__device__ __inline__ Hit intersect(const Ray &ray, const GeometryCompact *geometryCompact, bool needClosestHit) {
     Hit hit, closestHit;
-    closestHit.distance = tMax;
-    hit.distance = tMax;
-    bool ge = false;
+    closestHit.distance = ray.tMax;
+    hit.distance = ray.tMax;
     for (int i = 0; i < geometryCompact->geometriesSize; i++) {
         Geometry *geometry = geometryCompact->geometries[i];
         switch (geometry->type) {
             case SPHERE:
-                hit = ((Sphere *) geometry)->intersect(*this);
+                hit = ((Sphere *) geometry)->intersect(ray);
                 break;
             case CUBE:
                 break;
             case PLANE:
-                hit = ((Plane *) geometry)->intersect(*this);
+                hit = ((Plane *) geometry)->intersect(ray);
                 break;
             case MESH:
                 break;
         }
 
-        if (hit.distance < tMax) {
+        if (hit.distance < ray.tMax) {
             hit.index = i;
             if (!needClosestHit) {
                 closestHit = hit;
                 break;
             } else if (hit < closestHit) {
-                ge = geometry->type == PLANE;
                 closestHit = hit;
             }
         }
@@ -318,10 +323,11 @@ Hit Ray::intersect(const GeometryCompact *geometryCompact, bool needClosestHit) 
 
     if (closestHit.index != -1) {
         closestHit.matIndex = geometryCompact->matIndices[closestHit.index].x;
-        normalize(closestHit, this);
-        hitPoint(closestHit, this);
+        normalize(closestHit, ray);
+        hitPoint(closestHit, ray);
     }
 
     return closestHit;
 }
 
+#endif //TRENCHANTTRACER_INTERSECTKERNEL_H
