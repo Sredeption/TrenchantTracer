@@ -1,20 +1,14 @@
+#ifndef TRENCHANTTRACER_REFRIMPL_H
+#define TRENCHANTTRACER_REFRIMPL_H
+
 #include <material/Refr.h>
 
-const std::string Refr::TYPE = "Refr";
+#include <cuda_runtime.h>
 
-__host__ __device__ Refr::Refr() : Material(REFR) {
+#include <curand_kernel.h>
+#include <geometry/Ray.h>
 
-}
-
-__host__ Refr::Refr(const nlohmann::json &material) : Refr() {
-
-}
-
-__host__ U32 Refr::size() const {
-    return sizeof(Refr);
-}
-
-__device__ Ray Refr::sample(curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask) {
+__device__ __inline__ Ray refrSample(Refr *, curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask) {
     Ray nextRay = ray;// ray of next path segment
     bool into = dot(hit.n, hit.nl) > 0; // is ray entering or leaving refractive material?
     float nc = 1.0f;  // Index of Refraction air
@@ -64,3 +58,5 @@ __device__ Ray Refr::sample(curandState *randState, const Ray &ray, const Hit &h
     }
     return nextRay;
 }
+
+#endif //TRENCHANTTRACER_REFRIMPL_H

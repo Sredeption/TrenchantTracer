@@ -17,19 +17,16 @@ class Ray;
 
 // COAT material based on https://github.com/peterkutz/GPUPathTracer
 class Coat : public Material {
-private:
-    Vec3f specularColor;
-    Vec3f diffuseColor;
 public:
     static const std::string TYPE;
+    Vec3f specularColor;
+    Vec3f diffuseColor;
 
-    __host__ __device__ explicit Coat();
+    __host__ explicit Coat();
 
     __host__ explicit Coat(const nlohmann::json &material);
 
     __host__ U32 size() const override;
-
-    __device__ Ray sample(curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask);
 
 };
 

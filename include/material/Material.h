@@ -19,7 +19,7 @@ public:
     U32 index;
     MaterialType type;
 
-    __host__ __device__ explicit Material(MaterialType type);
+    __host__ explicit Material(MaterialType type);
 
     __host__ virtual U32 size() const = 0;
 

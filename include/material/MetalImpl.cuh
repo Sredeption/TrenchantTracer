@@ -1,19 +1,15 @@
+#ifndef TRENCHANTTRACER_METALIMPL_H
+#define TRENCHANTTRACER_METALIMPL_H
+
 #include <material/Metal.h>
 
-const std::string Metal::TYPE = "Metal";
+#include <cuda_runtime.h>
+#include <curand_kernel.h>
 
-__host__ __device__ Metal::Metal() : Material(METAL) {
-}
+#include <geometry/Ray.h>
 
-__host__ Metal::Metal(const nlohmann::json &material) : Metal() {
-    color = jsonToColor(material["color"]);
-}
-
-U32 Metal::size() const {
-    return sizeof(Metal);
-}
-
-Ray Metal::sample(curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask) {
+// Phong metal material from "Realistic Ray Tracing", P. Shirley
+__device__ __inline__ Ray metalSample(Metal *metal, curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask) {
     Ray nextRay = ray;// ray of next path segment
     // compute random perturbation of ideal reflection vector
     // the higher the phong exponent, the closer the perturbed vector is to the ideal reflection direction
@@ -39,6 +35,8 @@ Ray Metal::sample(curandState *randState, const Ray &ray, const Hit &hit, Vec3f 
     nextRay.origin = hit.point + hit.nl * 0.0001f;  // scene size dependent
 
     // multiply mask with colour of object
-    mask *= color;
+    mask *= metal->color;
     return nextRay;
 }
+
+#endif //TRENCHANTTRACER_METALIMPL_H

@@ -13,19 +13,17 @@
 #include <geometry/Ray.h>
 
 class Metal : public Material {
-private:
-    Vec3f color;
 public:
-
     static const std::string TYPE;
 
-    __host__ __device__ explicit Metal();
+    Vec3f color;
+
+    __host__ explicit Metal();
 
     __host__ explicit Metal(const nlohmann::json &material);
 
     __host__ U32 size() const override;
 
-    __device__ Ray sample(curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask);
 };
 
 

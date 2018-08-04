@@ -4,12 +4,11 @@
 #include <curand_kernel.h>
 #include <math/CutilMath.h>
 #include <geometry/Ray.h>
-#include <material/Coat.h>
-#include <material/Diff.h>
-#include <material/Metal.h>
-#include <material/Spec.h>
-#include <material/Refr.h>
-#include <geometry/Sphere.h>
+#include <material/CoatImpl.cuh>
+#include <material/DiffImpl.cuh>
+#include <material/MetalImpl.cuh>
+#include <material/SpecImpl.cuh>
+#include <material/RefrImpl.cuh>
 
 // union struct required for mapping pixel colours to OpenGL buffer
 union Color  // 4 bytes = 4 chars = 1 float
@@ -44,19 +43,19 @@ __device__ __inline__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEn
         Material *material = materialCompact->materials[hit.matIndex];
         switch (material->type) {
             case COAT:
-                ray = ((Coat *) material)->sample(randState, ray, hit, mask);
+                ray = coatSample((Coat *) material, randState, ray, hit, mask);
                 break;
             case DIFF:
-                ray = ((Diff *) material)->sample(randState, ray, hit, mask);
+                ray = diffSample((Diff *) material, randState, ray, hit, mask);
                 break;
             case METAL:
-                ray = ((Metal *) material)->sample(randState, ray, hit, mask);
+                ray = metalSample((Metal *) material, randState, ray, hit, mask);
                 break;
             case SPEC:
-                ray = ((Spec *) material)->sample(randState, ray, hit, mask);
+                ray = specSample((Spec *) material, randState, ray, hit, mask);
                 break;
             case REFR:
-                ray = ((Refr *) material)->sample(randState, ray, hit, mask);
+                ray = refrSample((Refr *) material, randState, ray, hit, mask);
                 break;
         }
     }

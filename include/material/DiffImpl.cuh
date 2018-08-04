@@ -1,19 +1,14 @@
+#ifndef TRENCHANTTRACER_DIFFIMPL_H
+#define TRENCHANTTRACER_DIFFIMPL_H
+
 #include <material/Diff.h>
 
-const std::string Diff::TYPE = "Diff";
+#include <cuda_runtime.h>
+#include <curand_kernel.h>
 
-__host__ __device__ Diff::Diff() : Material(DIFF) {
-}
+#include <geometry/Ray.h>
 
-__host__ Diff::Diff(const nlohmann::json &material) : Diff() {
-    diffuseColor = jsonToColor(material["diffuseColor"]);
-}
-
-__host__ U32 Diff::size() const {
-    return sizeof(Diff);
-}
-
-__device__ Ray Diff::sample(curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask) {
+__device__ __inline__ Ray diffSample(Diff *diff, curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask) {
     Ray nextRay = ray;// ray of next path segment
     // pick two random numbers
     float phi = 2 * M_PI * curand_uniform(randState);
@@ -35,6 +30,8 @@ __device__ Ray Diff::sample(curandState *randState, const Ray &ray, const Hit &h
     nextRay.origin = hit.point + hit.nl * 0.001f; // scene size dependent
 
     // multiply mask with colour of object
-    mask *= diffuseColor;
+    mask *= diff->diffuseColor;
     return nextRay;
 }
+
+#endif //TRENCHANTTRACER_DIFFIMPL_H

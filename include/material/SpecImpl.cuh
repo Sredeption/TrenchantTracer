@@ -1,20 +1,14 @@
+#ifndef TRENCHANTTRACER_SPECIMPL_H
+#define TRENCHANTTRACER_SPECIMPL_H
+
 #include <material/Spec.h>
 
-const std::string Spec::TYPE = "Spec";
+#include <cuda_runtime.h>
 
-__host__ __device__ Spec::Spec() : Material(SPEC) {
+#include <curand_kernel.h>
+#include <geometry/Ray.h>
 
-}
-
-__host__ Spec::Spec(const nlohmann::json &material) : Spec() {
-    color = jsonToColor(material["color"]);
-}
-
-__host__ U32 Spec::size() const {
-    return sizeof(Spec);
-}
-
-__device__ Ray Spec::sample(curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask) {
+__device__ __inline__ Ray specSample(Spec *spec, curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask) {
     Ray nextRay = ray;
     // ray of next path segment
     // compute reflected ray direction according to Snell's law
@@ -25,6 +19,8 @@ __device__ Ray Spec::sample(curandState *randState, const Ray &ray, const Hit &h
     nextRay.origin = hit.point + hit.nl * 0.001f;
 
     // multiply mask with colour of object
-    mask *= color;
+    mask *= spec->color;
     return nextRay;
 }
+
+#endif //TRENCHANTTRACER_SPECIMPL_H

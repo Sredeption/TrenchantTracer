@@ -1,23 +1,17 @@
+#ifndef TRENCHANTTRACER_COATIMPL_H
+#define TRENCHANTTRACER_COATIMPL_H
+
 #include <material/Coat.h>
 
-const std::string Coat::TYPE = "Coat";
+#include <cuda_runtime.h>
+#include <curand_kernel.h>
 
-__host__ __device__ Coat::Coat() : Material(COAT) {
-}
-
-__host__ Coat::Coat(const nlohmann::json &material) : Coat() {
-    specularColor = jsonToColor(material["specularColor"]);
-    diffuseColor = jsonToColor(material["diffuseColor"]);
-}
-
-__host__ U32 Coat::size() const {
-    return sizeof(Coat);
-}
+#include <geometry/Ray.h>
 
 // COAT material based on https://github.com/peterkutz/GPUPathTracer
 // randomly select diffuse or specular reflection
 // looks okay-ish but inaccurate (no Fresnel calculation yet)
-__device__ Ray Coat::sample(curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask) {
+__device__ __inline__ Ray coatSample(Coat *coat, curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask) {
     Ray nextRay = ray;// ray of next path segment
     float rouletteRandomFloat = curand_uniform(randState);
     float threshold = 0.05f;
@@ -30,7 +24,7 @@ __device__ Ray Coat::sample(curandState *randState, const Ray &ray, const Hit &h
         // TODO: Use Russian roulette instead of simple multipliers!
         // (Selecting between diffuse sample and no sample (absorption) in this case.)
 
-        mask *= specularColor;
+        mask *= coat->specularColor;
         nextRay.direction = ray.direction - hit.n * 2.0f * dot(hit.n, ray.direction);
         nextRay.direction.normalize();
 
@@ -57,9 +51,10 @@ __device__ Ray Coat::sample(curandState *randState, const Ray &ray, const Hit &h
         nextRay.origin = hit.point + hit.nl * 0.001f;  // // scene size dependent
 
         // multiply mask with colour of object
-        mask *= diffuseColor;
+        mask *= coat->diffuseColor;
     }
 
     return nextRay;
 }
 
+#endif //TRENCHANTTRACER_COATIMPL_H
