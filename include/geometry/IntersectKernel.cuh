@@ -2,9 +2,6 @@
 #define TRENCHANTTRACER_INTERSECTKERNEL_H
 
 #include <geometry/Ray.h>
-#include <geometry/Sphere.h>
-#include <geometry/Plane.h>
-
 
 //  RAY BOX INTERSECTION ROUTINES
 
@@ -284,50 +281,11 @@ __device__ __inline__ Hit intersect(const Ray &ray, const BVHCompact *bvhCompact
         hit.matIndex = tex1Dfetch<int>(bvhCompact->matIndicesTexture, hit.index);
         hit.index = tex1Dfetch<int>(bvhCompact->triIndicesTexture, hit.index);
 
-        normalize(hit, ray);
-        hitPoint(hit, ray);
+//        normalize(hit, ray);
+//        hitPoint(hit, ray);
     }
 
     return hit;
-}
-
-__device__ __inline__ Hit intersect(const Ray &ray, const GeometryCompact *geometryCompact, bool needClosestHit) {
-    Hit hit, closestHit;
-    closestHit.distance = ray.tMax;
-    hit.distance = ray.tMax;
-    for (int i = 0; i < geometryCompact->geometriesSize; i++) {
-        Geometry *geometry = geometryCompact->geometries[i];
-        switch (geometry->type) {
-            case SPHERE:
-                hit = ((Sphere *) geometry)->intersect(ray);
-                break;
-            case CUBE:
-                break;
-            case PLANE:
-                hit = ((Plane *) geometry)->intersect(ray);
-                break;
-            case MESH:
-                break;
-        }
-
-        if (hit.distance < ray.tMax) {
-            hit.index = i;
-            if (!needClosestHit) {
-                closestHit = hit;
-                break;
-            } else if (hit < closestHit) {
-                closestHit = hit;
-            }
-        }
-    }
-
-    if (closestHit.index != -1) {
-        closestHit.matIndex = geometryCompact->matIndices[closestHit.index].x;
-        normalize(closestHit, ray);
-        hitPoint(closestHit, ray);
-    }
-
-    return closestHit;
 }
 
 #endif //TRENCHANTTRACER_INTERSECTKERNEL_H

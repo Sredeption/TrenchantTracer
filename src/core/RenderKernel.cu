@@ -11,6 +11,8 @@
 #include <material/MetalImpl.cuh>
 #include <material/SpecImpl.cuh>
 #include <material/RefrImpl.cuh>
+#include <geometry/SphereImpl.cuh>
+#include <geometry/PlaneImpl.cuh>
 
 // union struct required for mapping pixel colours to OpenGL buffer
 union Color  // 4 bytes = 4 chars = 1 float
@@ -30,17 +32,41 @@ __device__ __inline__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEn
     for (int bounces = 0; bounces < 4; bounces++) {
         // iteration up to 4 bounces (instead of recursion in CPU code)
         Hit hit = intersect(ray, bvhCompact, true);
-        Hit geometryHit = intersect(ray, geometryCompact, true);
+        Hit geometryHit;
+        geometryHit.distance = ray.tMax;
+        for (int i = 0; i < geometryCompact->geometriesSize; i++) {
+            Geometry *geometry = geometryCompact->geometries[i];
+            switch (geometry->type) {
+                case SPHERE:
+                    geometryHit = sphereIntersect((Sphere *) geometry, ray);
+                    break;
+                case CUBE:
+                    break;
+                case PLANE:
+                    geometryHit = planeIntersect((Plane *) geometry, ray);
+                    break;
+                case MESH:
+                    break;
+            }
 
-        if (geometryHit < hit) {
-            hit = geometryHit;
+            if (geometryHit.distance < ray.tMax) {
+                geometryHit.index = i;
+                if (geometryHit < hit) {
+                    geometryHit.matIndex = geometryCompact->matIndices[geometryHit.index].x;
+                    hit = geometryHit;
+                }
+            }
         }
+
 
         if (hit.distance > 1e19) {
             emit = hdrEnv->sample(ray, renderMeta);
             accumulatedColor += (mask * emit);
             return accumulatedColor;
         }
+
+        normalize(hit, ray);
+        hitPoint(hit, ray);
 
         Material *material = materialCompact->materials[hit.matIndex];
         switch (material->type) {
