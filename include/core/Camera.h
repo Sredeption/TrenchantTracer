@@ -1,7 +1,3 @@
-//
-// Created by issac on 18-7-6.
-//
-
 #ifndef TRENCHANTTRACER_CAMERA_H
 #define TRENCHANTTRACER_CAMERA_H
 
