@@ -27,8 +27,8 @@ void display() {
 
 int main(int argc, char **argv) {
     // set up config
-    std::string configFileName = "config/maserati.json";
-//    std::string configFileName = "config/dev.json";
+//    std::string configFileName = "config/maserati.json";
+    std::string configFileName = "config/dev.json";
     auto config = new Config(configFileName);
 
     // init camera
@@ -40,9 +40,9 @@ int main(int argc, char **argv) {
     HDRLoader hdrLoader;
     HDRImage *hdrEnv = hdrLoader.load(config->hdrFileName);
 
-    std::string bvhFileName = config->objFileName + ".bvh";
-    std::string matFileName = config->objFileName + ".mat";
-    std::string geoFileName = config->objFileName + ".geo";
+    std::string bvhFileName = config->workDir + "/bvh.cache";
+    std::string matFileName = config->workDir + "/mat.cache";
+    std::string geoFileName = config->workDir + "/geo.cache";
     FILE *bvhFile = nullptr;
     if (!config->bvhReload)
         bvhFile = fopen(bvhFileName.c_str(), "rb");
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     MaterialCompact *materialCompact;
     GeometryCompact *geometryCompact;
 
-    if (!bvhFile || !matFile) {
+    if (!bvhFile || !matFile || !geoFile) {
         SceneLoader sceneLoader(config);
         Scene *scene = sceneLoader.load();
 

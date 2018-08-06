@@ -1,4 +1,3 @@
-
 #include <geometry/Vertices.h>
 
 Vertices::Vertices() = default;

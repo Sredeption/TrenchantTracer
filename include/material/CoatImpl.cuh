@@ -7,6 +7,7 @@
 #include <curand_kernel.h>
 
 #include <geometry/Ray.h>
+#include <geometry/Hit.h>
 
 // COAT material based on https://github.com/peterkutz/GPUPathTracer
 // randomly select diffuse or specular reflection

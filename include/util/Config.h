@@ -10,10 +10,10 @@
 
 class Config {
 public:
+    std::string workDir;
     int width;
     int height;
     std::string hdrFileName;
-    std::string objFileName;
     std::string materialFile;
     int samples;
     bool bvhReload;

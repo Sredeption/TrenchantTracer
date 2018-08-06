@@ -7,6 +7,7 @@
 #include <curand_kernel.h>
 
 #include <geometry/Ray.h>
+#include <geometry/Hit.h>
 
 __device__ __inline__ Ray diffSample(Diff *diff, curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask) {
     Ray nextRay = ray;// ray of next path segment

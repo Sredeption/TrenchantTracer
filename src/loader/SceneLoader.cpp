@@ -8,16 +8,15 @@ Scene *SceneLoader::load() {
     auto scene = new Scene();
 
     OBJLoader objLoader;
-    Object *object = objLoader.load(config->objFileName);
-    scene->add(object);
-    delete object;
 
     MaterialLoader materialLoader;
     MaterialPool *masterPool = materialLoader.load(config->materialFile);
     scene->add(masterPool);
     for (nlohmann::json &geometry : config->objects) {
         if (geometry[Geometry::TYPE] == Mesh::TYPE) {
-
+            Object *object = objLoader.load(geometry["file"]);
+            scene->add(object);
+            delete object;
         } else {
             scene->add(loadGeometry(geometry, masterPool));
         }

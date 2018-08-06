@@ -7,6 +7,7 @@
 #include <curand_kernel.h>
 
 #include <geometry/Ray.h>
+#include <geometry/Hit.h>
 
 // Phong metal material from "Realistic Ray Tracing", P. Shirley
 __device__ __inline__ Ray metalSample(Metal *metal, curandState *randState, const Ray &ray, const Hit &hit, Vec3f &mask) {
