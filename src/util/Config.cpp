@@ -7,9 +7,10 @@ Config::Config(std::string fileName) {
 
     buffer << ifs.rdbuf();
     auto config = nlohmann::json::parse(buffer.str());
+    camera = config["camera"];
     workDir = config.at("work-dir").get<std::string>();
-    width = config.at("width").get<int>();
-    height = config.at("height").get<int>();
+    width = camera.at("width").get<int>();
+    height = camera.at("height").get<int>();
     hdrFileName = config.at("hdr-file-name").get<std::string>();
     materialFile = config.at("material-file").get<std::string>();
     samples = config.at("samples").get<int>();

@@ -1,12 +1,18 @@
 {
   "work-dir": "data/cornell_dragon",
-  "width": 1280,
-  "height": 720,
   "samples": 1,
   "material-file": "data/master.mtl",
   "hdr-file-name": "data/Topanga_Forest_B_3k.hdr",
-  "bvh-reload": true,
+  "bvh-reload": false,
   "material-reload": false,
+  "camera": {
+    "width": 1280,
+    "height": 720,
+    "position": [0, 0.5, 5],
+    "yaw": -0.1,
+    "pitch": 0.2,
+    "radius": 4
+  },
   "objects": [
     {
       "type": "Plane",

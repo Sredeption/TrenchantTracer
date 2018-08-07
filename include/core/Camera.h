@@ -3,6 +3,7 @@
 
 
 #include <math/LinearMath.h>
+#include <util/Config.h>
 
 struct CameraMeta {
     Vec2i resolution;
@@ -19,6 +20,9 @@ private:
 
     const static float PI_OVER_TWO;
     const static float PI;
+    const static std::string POSITION;
+    const static std::string YAW;
+    const static std::string PITCH;
 
     Vec3f centerPosition;
     Vec3f viewDirection;
@@ -45,7 +49,7 @@ private:
 
 public:
 
-    Camera(int width, int height);
+    Camera(Config *config);
 
     virtual ~Camera();
 

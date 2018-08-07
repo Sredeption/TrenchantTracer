@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
     auto config = new Config(configFileName);
 
     // init camera
-    auto *camera = new Camera(config->width, config->height);
+    auto *camera = new Camera(config);
     camera->setFovx(45);
     Controller::init(camera);
 

@@ -1,17 +1,35 @@
 #include <core/Camera.h>
+#include <geometry/Geometry.h>
 
 const float Camera::PI_OVER_TWO = 1.5707963267948966192313216916397514420985f;
 const float Camera::PI = 3.14156265f;
+const std::string Camera::POSITION = "position";
+const std::string Camera::YAW = "yaw";
+const std::string Camera::PITCH = "pitch";
 
-Camera::Camera(int width, int height) {
-    centerPosition = Vec3f(0, 0, 0);
-    yaw = 0;
-    pitch = 0.3;
+Camera::Camera(Config *config) {
+    const nlohmann::json &camera = config->camera;
+
+    if (camera.find(POSITION) == camera.end())
+        centerPosition = Vec3f(0, 0, 0);
+    else
+        centerPosition = Geometry::jsonToVec(camera[POSITION]);
+
+    if (camera.find(YAW) == camera.end())
+        yaw = 0;
+    else
+        yaw = camera[YAW];
+
+    if (camera.find(PITCH) == camera.end())
+        pitch = 0.3;
+    else
+        pitch = camera[PITCH];
+
     radius = 4;
     apertureRadius = 0.04;
     focalDistance = 4.0f;
 
-    resolution = Vec2i(width, height);
+    resolution = Vec2i(config->width, config->height);
     fov = Vec2f(40, 40);
 }
 

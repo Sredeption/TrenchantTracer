@@ -19,6 +19,7 @@ public:
     bool bvhReload;
     bool materialReload;
     nlohmann::json objects;
+    nlohmann::json camera;
 
     explicit Config(std::string fileName);
 };
