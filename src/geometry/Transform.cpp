@@ -1,24 +1,39 @@
 #include <geometry/Transform.h>
+#include <geometry/Geometry.h>
+#include <math/PoseMath.h>
 
 const std::string Transform::SCALE = "scale";
 const std::string Transform::ORIENTATION = "orientation";
-const std::string Transform::TRANSLATE = "scale";
+const std::string Transform::TRANSLATE = "translate";
 
 Vec3f Transform::jsonToVec(const nlohmann::json &j) {
     return Vec3f(j[0], j[1], j[2]);
 }
 
-Transform::Transform(const nlohmann::json &j) {
+Transform::Transform(const nlohmann::json &geometryJson) {
     matrix.setIdentity();
-    if (j.find(SCALE) != j.end()) {
-        Vec3f scale = jsonToVec(j[SCALE]);
+
+    if (geometryJson.find(Geometry::TRANSFORM) == geometryJson.end())
+        return;
+    const nlohmann::json &transformJson = geometryJson[Geometry::TRANSFORM];
+
+    if (transformJson.find(SCALE) != transformJson.end()) {
+        Vec3f scale = jsonToVec(transformJson[SCALE]);
+        matrix = matrix * PoseMath::scale(scale);
     }
 
-    if (j.find(ORIENTATION) != j.end()) {
-        const nlohmann::json &o = j[ORIENTATION];
+    if (transformJson.find(TRANSLATE) != transformJson.end()) {
+        Vec3f translate = jsonToVec(transformJson[TRANSLATE]);
+        matrix = matrix * PoseMath::translate(translate);
     }
+    if (transformJson.find(ORIENTATION) != transformJson.end()) {
+        Vec3f orientation = (jsonToVec(transformJson[ORIENTATION]) / 180.0f) * M_PI;
+        std::cout << orientation << std::endl;
+        matrix = matrix * PoseMath::orientation(orientation);
+    }
+}
 
-    if (j.find(TRANSLATE) != j.end()) {
-        Vec3f translate = jsonToVec(j[TRANSLATE]);
-    }
+Vec3f Transform::apply(Vec3f &vertex) const {
+    Vec4f v = matrix * Vec4f(vertex, 1);
+    return Vec3f(v.x, v.y, v.z);
 }

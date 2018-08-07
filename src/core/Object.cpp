@@ -85,3 +85,7 @@ void Object::postProcess() {
         vertices[i] *= 0.1; // 0.25
     }
 }
+
+void Object::apply(const Transform &transform) {
+    vertices->apply(transform);
+}

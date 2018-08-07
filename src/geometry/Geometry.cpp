@@ -1,6 +1,7 @@
 #include <geometry/Geometry.h>
 
 const std::string Geometry::TYPE = "type";
+const std::string Geometry::TRANSFORM = "transform";
 
 Geometry::Geometry(GeometryType type) :
         type(type) {

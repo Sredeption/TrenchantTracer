@@ -1,4 +1,5 @@
 #include <loader/SceneLoader.h>
+#include <geometry/Transform.h>
 
 SceneLoader::SceneLoader(Config *config) {
     this->config = config;
@@ -13,8 +14,10 @@ Scene *SceneLoader::load() {
     MaterialPool *masterPool = materialLoader.load(config->materialFile);
     scene->add(masterPool);
     for (nlohmann::json &geometry : config->objects) {
+        Transform transform(geometry);
         if (geometry[Geometry::TYPE] == Mesh::TYPE) {
             Object *object = objLoader.load(geometry["file"]);
+            object->apply(transform);
             scene->add(object);
             delete object;
         } else {

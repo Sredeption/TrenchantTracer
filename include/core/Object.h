@@ -38,6 +38,8 @@ public:
 
     std::vector<Group *> getGroups();
 
+    void apply(const Transform &transform);
+
     void postProcess();
 };
 

@@ -2,6 +2,7 @@
 #define TRENCHANTTRACER_LINEARMATH_H
 
 #include <cmath>
+#include <iostream>
 #include <cuda_runtime.h> // for __host__  __device__
 
 #define FW_ASSERT(X) ((void)0)
@@ -151,6 +152,11 @@ struct Vec3f {
     inline __host__ __device__ bool operator!=(const Vec3f &v) { return x != v.x || y != v.y || z != v.z; }
 
     inline __host__ __device__ bool operator==(const Vec3f &v) { return x == v.x && y == v.y && z == v.z; }
+
+    friend std::ostream &operator<<(std::ostream &os, const Vec3f &v) {
+        os << v.x << "," << v.y << "," << v.z;
+        return os;
+    }
 };
 
 struct Vec3i {
@@ -204,6 +210,13 @@ struct Vec4f {
         z *= v.z;
         w *= v.w;
         return *this;
+    }
+
+    inline __host__ __device__ float dot(const Vec4f &v) const {
+        float s = 0;
+        for (int i = 0; i < 4; i++)
+            s += this->_v[i] * v._v[i];
+        return s;
     }
 };
 
@@ -484,13 +497,34 @@ public:
 
     inline Mat4f &operator=(const float &a) {
         set(a);
-        return *(Mat4f *) this;
+        return *this;
     }
 
     inline Mat4f operator*(const float &a) const {
         Mat4f r;
         for (int i = 0; i < 4 * 4; i++) r.get(i) = get(i) * a;
         return r;
+    }
+
+
+    inline Mat4f operator*(const Mat4f &that) const {
+        Mat4f m;
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++) {
+                m.get(i, j) = 0;
+                for (int k = 0; k < 4; k++) {
+                    m.get(i, j) += this->get(i, k) * that.get(k, j);
+                }
+            }
+        return m;
+    }
+
+    inline Vec4f operator*(const Vec4f &a) const {
+        Vec4f v;
+        for (int i = 0; i < 4; i++) {
+            v._v[i] = this->getRow(i).dot(a);
+        }
+        return v;
     }
 
     inline const float &operator()(int r, int c) const { return get(r, c); }
@@ -512,6 +546,16 @@ public:
     inline Mat4f &operator=(const Mat4f &v) {
         set(v);
         return *this;
+    }
+
+    friend std::ostream &operator<<(std::ostream &os, const Mat4f &m) {
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                os << m.get(i, j) << ",";
+            }
+            os << std::endl;
+        }
+        return os;
     }
 
 public:

@@ -14,7 +14,9 @@ public:
     static const std::string ORIENTATION;
     static const std::string TRANSLATE;
 
-    explicit Transform(const nlohmann::json &j);
+    explicit Transform(const nlohmann::json &geometryJson);
+
+    Vec3f apply(Vec3f &vertex) const;
 
     static Vec3f jsonToVec(const nlohmann::json &j);
 };

@@ -14,6 +14,7 @@ enum GeometryType : U8 {
 class Geometry {
 public:
     static const std::string TYPE;
+    static const std::string TRANSFORM;
 
     GeometryType type;
 
