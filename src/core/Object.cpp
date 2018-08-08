@@ -37,9 +37,6 @@ std::vector<Group *> Object::getGroups() {
 }
 
 void Object::postProcess() {
-// Rescale input objects to have this size...
-    const float MaxCoordAfterRescale = 1.2f;
-
     // Center scene at world's center
     Vec3f minp(FLT_MAX, FLT_MAX, FLT_MAX);
     Vec3f maxp(-FLT_MAX, -FLT_MAX, -FLT_MAX);
@@ -74,15 +71,14 @@ void Object::postProcess() {
     maxi = std::max(maxi, std::fabs(maxp.y));
     maxi = std::max(maxi, std::fabs(maxp.z));
 
-    std::cout << "Scaling factor: " << (MaxCoordAfterRescale / maxi) << "\n";
-    std::cout << "Center origin: " << origCenter.x << " " << origCenter.y << " " << origCenter.z << "\n";
+    float scaleFactor = 1.0f / maxi;
+    std::cout << "Scaling factor: " << scaleFactor << std::endl;
+    std::cout << "Center origin: " << origCenter << std::endl;
 
     std::cout << "\nCentering and scaling vertices..." << std::endl;
     for (unsigned i = 0; i < vertices.getSize(); i++) {
         vertices[i] -= origCenter;
-        //vertices[i].y += origCenter.y;
-        //vertices[i] *= (MaxCoordAfterRescale / maxi);
-        vertices[i] *= 0.1; // 0.25
+        vertices[i] *= scaleFactor;
     }
 }
 

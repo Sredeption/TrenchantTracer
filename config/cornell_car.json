@@ -1,0 +1,73 @@
+{
+  "work-dir": "data/cornell_car",
+  "samples": 1,
+  "material-file": "data/master.mtl",
+  "hdr-file-name": "data/Topanga_Forest_B_3k.hdr",
+  "bvh-reload": false,
+  "material-reload": true,
+  "camera": {
+    "width": 1280,
+    "height": 720,
+    "position": [0, 0, 3],
+    "yaw": 0,
+    "pitch": 0.1,
+    "radius": 4,
+    "focal": 1,
+    "aperture": 0.0001
+  },
+  "objects": [
+    {
+      "type": "Plane",
+      "p0": [-1.5, -1, -1],
+      "p1": [1.5, -1, -1],
+      "p2": [-1.5, 1, -1],
+      "material": "diff1"
+    },
+    {
+      "type": "Plane",
+      "p0": [-1.5, -1, -1],
+      "p1": [-1.5, 1, -1],
+      "p2": [-1.5, -1, 4],
+      "material": "diff1"
+    },
+    {
+      "type": "Plane",
+      "p0": [1.5, -1, -1],
+      "p1": [1.5, -1, 4],
+      "p2": [1.5, 1, -1],
+      "material": "diff1"
+    },
+    {
+      "type": "Plane",
+      "p0": [-1.5, 1, -1],
+      "p1": [1.5, 1, -1],
+      "p2": [-1.5, 1, 4],
+      "material": "diff1"
+    },
+    {
+      "type": "Plane",
+      "p0": [-30, -1, -30],
+      "p1": [-30, -1, 30],
+      "p2": [30, -1, -30],
+      "material": "diff1",
+      "transform": {
+      }
+    },
+    {
+      "type": "Plane",
+      "p0": [-0.3, 0.9999, 1.2],
+      "p1": [0.3, 0.9999, 1.2],
+      "p2": [-0.3, 0.9999, 1.8],
+      "material": "light"
+    },
+    {
+      "type": "Mesh",
+      "file": "data/maserati/car3.obj",
+      "transform": {
+        "scale": [1.5, 1.5, 1.5],
+        "orientation": [0, 150, 0],
+        "translate": [0, -0.4, 1]
+      }
+    }
+  ]
+}

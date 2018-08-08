@@ -27,8 +27,9 @@ void display() {
 
 int main(int argc, char **argv) {
     // set up config
-//    std::string configFileName = "config/maserati.json";
-    std::string configFileName = "config/cornell_dragon.json";
+    std::string configFileName = "config/maserati.json";
+//    std::string configFileName = "config/cornell_dragon.json";
+//    std::string configFileName = "config/cornell_car.json";
     auto config = new Config(configFileName);
 
     // init camera

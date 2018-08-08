@@ -32,7 +32,7 @@ __device__ __inline__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEn
     Vec3f accumulatedColor = Vec3f(0.0f, 0.0f, 0.0f); // accumulated colour
     Vec3f emit;
 
-    for (int bounces = 0; bounces < 4; bounces++) {
+    for (int bounces = 0; bounces < 10; bounces++) {
         // iteration up to 4 bounces (instead of recursion in CPU code)
         Hit hit = intersect(ray, bvhCompact, true);
         Hit geometryHit;
