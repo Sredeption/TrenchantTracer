@@ -15,11 +15,13 @@ enum MaterialType : U8 {
 class Material {
 public:
     static const std::string TYPE;
+    static const std::string EMISSION;
 
     U32 index;
     MaterialType type;
+    Vec3f emission;
 
-    __host__ explicit Material(MaterialType type);
+    __host__ explicit Material(MaterialType type, const nlohmann::json &material);
 
     __host__ virtual U32 size() const = 0;
 

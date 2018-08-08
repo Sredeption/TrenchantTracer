@@ -2,11 +2,7 @@
 
 const std::string Spec::TYPE = "Spec";
 
-__host__ Spec::Spec() : Material(SPEC) {
-
-}
-
-__host__ Spec::Spec(const nlohmann::json &material) : Spec() {
+__host__ Spec::Spec(const nlohmann::json &material) : Material(SPEC, material) {
     color = jsonToColor(material["color"]);
 }
 

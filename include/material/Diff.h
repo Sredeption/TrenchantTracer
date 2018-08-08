@@ -12,8 +12,6 @@ public:
 
     Vec3f diffuseColor;
 
-    __host__ Diff();
-
     __host__ explicit Diff(const nlohmann::json &material);
 
     __host__ U32 size() const override;

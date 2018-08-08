@@ -2,10 +2,7 @@
 
 const std::string Metal::TYPE = "Metal";
 
-__host__ Metal::Metal() : Material(METAL) {
-}
-
-__host__ Metal::Metal(const nlohmann::json &material) : Metal() {
+__host__ Metal::Metal(const nlohmann::json &material) : Material(METAL, material) {
     color = jsonToColor(material["color"]);
 }
 

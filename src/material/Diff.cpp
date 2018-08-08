@@ -2,10 +2,7 @@
 
 const std::string Diff::TYPE = "Diff";
 
-__host__ Diff::Diff() : Material(DIFF) {
-}
-
-__host__ Diff::Diff(const nlohmann::json &material) : Diff() {
+__host__ Diff::Diff(const nlohmann::json &material) : Material(DIFF,material) {
     diffuseColor = jsonToColor(material["diffuseColor"]);
 }
 

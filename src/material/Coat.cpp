@@ -2,10 +2,7 @@
 
 const std::string Coat::TYPE = "Coat";
 
-__host__ Coat::Coat() : Material(COAT) {
-}
-
-__host__ Coat::Coat(const nlohmann::json &material) : Coat() {
+__host__ Coat::Coat(const nlohmann::json &material) : Material(COAT, material) {
     specularColor = jsonToColor(material["specularColor"]);
     diffuseColor = jsonToColor(material["diffuseColor"]);
 }

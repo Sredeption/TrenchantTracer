@@ -3,15 +3,17 @@
   "samples": 1,
   "material-file": "data/master.mtl",
   "hdr-file-name": "data/Topanga_Forest_B_3k.hdr",
-  "bvh-reload": false,
-  "material-reload": false,
+  "bvh-reload": true,
+  "material-reload": true,
   "camera": {
     "width": 1280,
     "height": 720,
-    "position": [0, 0.5, 5],
-    "yaw": -0.1,
-    "pitch": 0.2,
-    "radius": 4
+    "position": [0, 0.2, 3],
+    "yaw": 0,
+    "pitch": 0.1,
+    "radius": 4,
+    "focal": 1,
+    "aperture": 0.0001
   },
   "objects": [
     {
@@ -52,12 +54,19 @@
       }
     },
     {
+      "type": "Plane",
+      "p0": [-0.3, 0.9999, 1.2],
+      "p1": [0.3, 0.9999, 1.2],
+      "p2": [-0.3, 0.9999, 1.8],
+      "material": "light"
+    },
+    {
       "type": "Mesh",
       "file": "data/dragon.obj",
       "transform": {
         "scale": [1, 1, 1],
         "orientation": [0, 90, 0],
-        "translate": [1, -0.5, 0]
+        "translate": [0, -0.5, 1]
       }
     }
   ]

@@ -2,11 +2,7 @@
 
 const std::string Refr::TYPE = "Refr";
 
-__host__ Refr::Refr() : Material(REFR) {
-
-}
-
-__host__ Refr::Refr(const nlohmann::json &material) : Refr() {
+__host__ Refr::Refr(const nlohmann::json &material) : Material(REFR, material) {
 
 }
 

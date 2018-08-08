@@ -23,6 +23,8 @@ private:
     const static std::string POSITION;
     const static std::string YAW;
     const static std::string PITCH;
+    const static std::string FOCAL;
+    const static std::string APERTURE;
 
     Vec3f centerPosition;
     Vec3f viewDirection;

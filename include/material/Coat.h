@@ -16,8 +16,6 @@ public:
     Vec3f specularColor;
     Vec3f diffuseColor;
 
-    __host__ explicit Coat();
-
     __host__ explicit Coat(const nlohmann::json &material);
 
     __host__ U32 size() const override;

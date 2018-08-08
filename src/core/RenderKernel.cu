@@ -72,6 +72,7 @@ __device__ __inline__ Vec3f renderKernel(curandState *randState, HDRImage *hdrEn
         hitPoint(hit, ray);
 
         Material *material = (Material *) (materialCompact->materials + hit.matIndex);
+        accumulatedColor += mask * material->emission;
         switch (material->type) {
             case COAT:
                 ray = coatSample((Coat *) material, randState, ray, hit, mask);

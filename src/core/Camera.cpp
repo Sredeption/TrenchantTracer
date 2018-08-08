@@ -6,6 +6,8 @@ const float Camera::PI = 3.14156265f;
 const std::string Camera::POSITION = "position";
 const std::string Camera::YAW = "yaw";
 const std::string Camera::PITCH = "pitch";
+const std::string Camera::FOCAL = "focal";
+const std::string Camera::APERTURE = "aperture";
 
 Camera::Camera(Config *config) {
     const nlohmann::json &camera = config->camera;
@@ -25,9 +27,17 @@ Camera::Camera(Config *config) {
     else
         pitch = camera[PITCH];
 
+    if (camera.find(FOCAL) == camera.end())
+        focalDistance = 4.0f;
+    else
+        focalDistance = camera[FOCAL];
+
+    if (camera.find(APERTURE) == camera.end())
+        apertureRadius = 0.04;
+    else
+        apertureRadius = camera[APERTURE];
+
     radius = 4;
-    apertureRadius = 0.04;
-    focalDistance = 4.0f;
 
     resolution = Vec2i(config->width, config->height);
     fov = Vec2f(40, 40);

@@ -14,8 +14,6 @@ public:
 
     Vec3f color;
 
-    __host__ explicit Spec();
-
     __host__ explicit Spec(const nlohmann::json &material);
 
     __host__ U32 size() const override;

@@ -11,8 +11,6 @@ class Refr : public Material {
 public:
     static const std::string TYPE;
 
-    __host__ Refr();
-
     __host__ explicit Refr(const nlohmann::json &material);
 
     __host__ U32 size() const override;
