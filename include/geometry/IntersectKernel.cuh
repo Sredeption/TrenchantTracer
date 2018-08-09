@@ -207,6 +207,8 @@ __device__ __inline__ Hit intersect(const Ray &ray, const BVHCompact *bvhCompact
         /// LEAF NODE / TRIANGLE INTERSECTION
         ///////////////////////////////////////
         while (leafAddr < 0) {
+
+            const float EPSILON = 0.00001f; // works better
             // if leafAddr is negative, it points to an actual leafnode (when positive or 0 it's an innernode
 
             // Intersect the ray against each triangle using Sven Woop's algorithm.
@@ -217,57 +219,54 @@ __device__ __inline__ Hit intersect(const Ray &ray, const BVHCompact *bvhCompact
 
                 // Read first 16 bytes of the triangle.
                 // fetch first precomputed triangle edge
-                float4 v00 = tex1Dfetch<float4>(bvhCompact->verticesTexture, triAddr);
+                Vec3f v0 = Vec3f(tex1Dfetch<float4>(bvhCompact->verticesTexture, triAddr));
 
                 // End marker 0x80000000 (= negative zero) => all triangles in leaf processed. --> terminate
-                if (__float_as_int(v00.x) == 0x80000000) break;
+                if (__float_as_int(v0.x) == 0x80000000) break;
 
-                // Compute and check intersection t-value (hit distance along ray).
-                // Origin z
-                float Oz = v00.w - ray.origin.x * v00.x - ray.origin.y * v00.y - ray.origin.z * v00.z;
-                // inverse Direction z
-                float invDz = 1.0f / (ray.direction.x * v00.x + ray.direction.y * v00.y + ray.direction.z * v00.z);
-                float t = Oz * invDz;
+                Vec3f v1 = Vec3f(tex1Dfetch<float4>(bvhCompact->verticesTexture, triAddr + 1));
+                Vec3f v2 = Vec3f(tex1Dfetch<float4>(bvhCompact->verticesTexture, triAddr + 2));
 
+                Vec3f edge1 = v1 - v0;
+                Vec3f edge2 = v2 - v0;
+
+                Vec3f tVec = ray.origin - v0;
+                Vec3f pVec = cross(ray.direction, edge2);
+                float det = dot(edge1, pVec);
+
+                float invDet = 1.0f / det;
+
+                float u = dot(tVec, pVec) * invDet;
+
+                Vec3f qVec = cross(tVec, edge1);
+
+                float v = dot(ray.direction, qVec) * invDet;
+
+                if (det > EPSILON) {
+                    if (u < 0.0f || u > 1.0f) continue;
+                    if (v < 0.0f || (u + v) > 1.0f) continue;
+                } else if (det < -EPSILON) {
+                    if (u > 0.0f || u < 1.0f) continue;
+                    if (v > 0.0f || (u + v) < 1.0f) continue;
+                } else
+                    continue;
+
+                float t = dot(edge2, qVec) * invDet;
                 if (ray.tMin < t && t < hit.distance) {
-                    // Compute and check barycentric u.
+                    // We've got a hit!
+                    hit.distance = t;
+                    hit.index = triAddr; // store triangle index for shading
 
-                    // fetch second precomputed triangle edge
-                    float4 v11 = tex1Dfetch<float4>(bvhCompact->verticesTexture, triAddr + 1);
-                    // Origin.x
-                    float Ox = v11.w + ray.origin.x * v11.x + ray.origin.y * v11.y + ray.origin.z * v11.z;
-                    // Direction.x
-                    float Dx = ray.direction.x * v11.x + ray.direction.y * v11.y + ray.direction.z * v11.z;
-                    float u = Ox + t * Dx; // parametric equation of a ray (intersection point)
-
-                    if (u >= 0.0f && u <= 1.0f) {
-                        // Compute and check barycentric v.
-                        // fetch third precomputed triangle edge
-                        float4 v22 = tex1Dfetch<float4>(bvhCompact->verticesTexture, triAddr + 2);
-                        float Oy = v22.w + ray.origin.x * v22.x + ray.origin.y * v22.y + ray.origin.z * v22.z;
-                        float Dy = ray.direction.x * v22.x + ray.direction.y * v22.y + ray.direction.z * v22.z;
-                        float v = Oy + t * Dy;
-
-                        if (v >= 0.0f && u + v <= 1.0f) {
-                            // We've got a hit!
-                            // Record intersection.
-                            hit.distance = t;
-                            hit.index = triAddr; // store triangle index for shading
-
-                            Vec3f n0 = Vec3f(tex1Dfetch<float4>(bvhCompact->normalsTexture, triAddr));
-                            Vec3f n1 = Vec3f(tex1Dfetch<float4>(bvhCompact->normalsTexture, triAddr + 1));
-                            Vec3f n2 = Vec3f(tex1Dfetch<float4>(bvhCompact->normalsTexture, triAddr + 2));
-                            // Interpolate to find normal
-                            hit.normal = n0 * (1 - u - v) + n1 * u + n2 * v;
-
-                            if (!needClosestHit) {
-                                // shadow rays only require "any" hit with scene geometry, not the closest one
-                                nodeAddr = EntrypointSentinel;
-                                break;
-                            }
-                        }
+                    Vec3f n0 = Vec3f(tex1Dfetch<float4>(bvhCompact->normalsTexture, triAddr));
+                    Vec3f n1 = Vec3f(tex1Dfetch<float4>(bvhCompact->normalsTexture, triAddr + 1));
+                    Vec3f n2 = Vec3f(tex1Dfetch<float4>(bvhCompact->normalsTexture, triAddr + 2));
+                    // Interpolate to find normal
+                    hit.normal = n0 * (1 - u - v) + n1 * u + n2 * v;
+                    if (!needClosestHit) {
+                        // shadow rays only require "any" hit with scene geometry, not the closest one
+                        nodeAddr = EntrypointSentinel;
+                        break;
                     }
-
                 }
             } // triangle
 

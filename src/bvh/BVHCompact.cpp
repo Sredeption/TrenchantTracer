@@ -267,21 +267,10 @@ __host__ void BVHCompact::getTriangle(const BVH &bvh, int triIdx, Vec4f *vertex,
     normal[1] = Vec4f(n1, 0.0f);
     normal[2] = Vec4f(n2, 0.0f);
 
-    // transform the triangle's vertices to Woop triangle
-    // (simple transform to right angled triangle, see paper by Sven Woop)
-    Mat4f mtx;
-    // compute edges and transform them with a matrix
-    mtx.setCol(0, Vec4f(v0 - v2, 0.0f)); // sets matrix column 0 equal to a Vec4f(Vec3f, 0.0f )
-    mtx.setCol(1, Vec4f(v1 - v2, 0.0f));
-    mtx.setCol(2, Vec4f(cross(v0 - v2, v1 - v2), 0.0f));
-    mtx.setCol(3, Vec4f(v2, 1.0f));
-    mtx = invert(mtx);
-
-    // m_woop[3] stores 3 transformed triangle edges
-    vertex[0] = Vec4f(mtx(2, 0), mtx(2, 1), mtx(2, 2), -mtx(2, 3));
-    // elements of 3rd row of inverted matrix
-    vertex[1] = mtx.getRow(0);
-    vertex[2] = mtx.getRow(1);
+    // vertices
+    vertex[0] = Vec4f(v0, 0.0f);
+    vertex[1] = Vec4f(v1, 0.0f);
+    vertex[2] = Vec4f(v2, 0.0f);
 }
 
 __host__ void BVHCompact::createTexture() {
