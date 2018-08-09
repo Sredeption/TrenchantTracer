@@ -28,7 +28,7 @@ BVHCompact::BVHCompact(FILE *bvhFile) {
         throw std::runtime_error("Error reading BVH cache file!\n");
     if (1 != fread(&leafNodeCount, sizeof(unsigned), 1, bvhFile))
         throw std::runtime_error("Error reading BVH cache file!\n");
-    if (1 != fread(&woopTriSize, sizeof(unsigned), 1, bvhFile))
+    if (1 != fread(&verticesSize, sizeof(unsigned), 1, bvhFile))
         throw std::runtime_error("Error reading BVH cache file!\n");
     if (1 != fread(&normalsSize, sizeof(unsigned), 1, bvhFile))
         throw std::runtime_error("Error reading BVH cache file!\n");
@@ -42,14 +42,14 @@ BVHCompact::BVHCompact(FILE *bvhFile) {
     std::cout << "Number of BVH leaf nodes: " << leafNodeCount << "\n";
 
     auto cpuNodes = (Vec4i *) malloc(nodesSize * sizeof(Vec4i));
-    auto cpuWoopTri = (Vec4i *) malloc(woopTriSize * sizeof(Vec4i));
+    auto cpuVertices = (Vec4i *) malloc(verticesSize * sizeof(Vec4i));
     auto cpuNormals = (Vec4i *) malloc(normalsSize * sizeof(Vec4i));
     auto cpuTriIndices = (S32 *) malloc(triIndicesSize * sizeof(S32));
     auto cpuMatIndices = (U32 *) malloc(matIndicesSize * sizeof(S32));
 
     if (nodesSize != fread(cpuNodes, sizeof(Vec4i), nodesSize, bvhFile))
         throw std::runtime_error("Error reading BVH cache file!\n");
-    if (woopTriSize != fread(cpuWoopTri, sizeof(Vec4i), woopTriSize, bvhFile))
+    if (verticesSize != fread(cpuVertices, sizeof(Vec4i), verticesSize, bvhFile))
         throw std::runtime_error("Error reading BVH cache file!\n");
     if (normalsSize != fread(cpuNormals, sizeof(Vec4i), normalsSize, bvhFile))
         throw std::runtime_error("Error reading BVH cache file!\n");
@@ -60,8 +60,8 @@ BVHCompact::BVHCompact(FILE *bvhFile) {
 
     cudaMalloc(&nodes, nodesSize * sizeof(Vec4i));
     cudaMemcpy(nodes, cpuNodes, nodesSize * sizeof(Vec4i), cudaMemcpyHostToDevice);
-    cudaMalloc(&woopTri, woopTriSize * sizeof(Vec4i));
-    cudaMemcpy(woopTri, cpuWoopTri, woopTriSize * sizeof(Vec4i), cudaMemcpyHostToDevice);
+    cudaMalloc(&vertices, verticesSize * sizeof(Vec4i));
+    cudaMemcpy(vertices, cpuVertices, verticesSize * sizeof(Vec4i), cudaMemcpyHostToDevice);
     cudaMalloc(&normals, normalsSize * sizeof(Vec4i));
     cudaMemcpy(normals, cpuNormals, normalsSize * sizeof(Vec4i), cudaMemcpyHostToDevice);
     cudaMalloc(&triIndices, triIndicesSize * sizeof(U32));
@@ -70,7 +70,7 @@ BVHCompact::BVHCompact(FILE *bvhFile) {
     cudaMemcpy(matIndices, cpuMatIndices, matIndicesSize * sizeof(S32), cudaMemcpyHostToDevice);
 
     free(cpuNodes);
-    free(cpuWoopTri);
+    free(cpuVertices);
     free(cpuNormals);
     free(cpuTriIndices);
 
@@ -80,7 +80,7 @@ BVHCompact::BVHCompact(FILE *bvhFile) {
 
 __host__ BVHCompact::~BVHCompact() {
     cudaFree(this->nodes);
-    cudaFree(this->woopTri);
+    cudaFree(this->vertices);
     cudaFree(this->normals);
     cudaFree(this->triIndices);
 }
@@ -89,7 +89,7 @@ __host__ void BVHCompact::createCompact(const BVH &bvh, int nodeOffsetSizeDiv) {
 
     // construct and initialize data arrays which will be copied to CudaBVH buffers (last part of this function).
     Array<Vec4i> nodeData(nullptr, 4);
-    Array<Vec4i> triWoopData;
+    Array<Vec4i> vertexData;
     Array<Vec4i> normalData; // array for regular (non-woop) triangles
     Array<S32> triIndexData;
     Array<U32> matIndexData;
@@ -131,23 +131,23 @@ __host__ void BVHCompact::createCompact(const BVH &bvh, int nodeOffsetSizeDiv) {
             auto *leaf = (LeafNode *) child;
 
             // index of a leaf node is a negative number, hence the ~
-            childIndex[i] = ~triWoopData.getSize();
+            childIndex[i] = ~vertexData.getSize();
             // leafs must be stored as negative (bitwise complement) in order to be recognised by path tracer as a leaf
 
             // for each triangle in leaf, range of triangle index j from m_lo to m_hi
             for (int j = leaf->lo; j < leaf->hi; j++) {
                 // transform the triangle's vertices to Woop triangle (simple transform to right angled
                 // triangle, see paper by Sven Woop)
-                Vec4f woopTri[4], normal[4];
+                Vec4f vertex[4], normal[4];
                 // transform the triangle's vertices to Woop triangle
                 // (simple transform to right angled triangle, see paper by Sven Woop)
-                woopifyTri(bvh, j, woopTri, normal);  // j is de triangle index in triIndex array
+                woopifyTri(bvh, j, vertex, normal);  // j is de triangle index in triIndex array
                 this->triCount++;
 
-                if (woopTri[0].x == 0.0f) woopTri[0].x = 0.0f;  // avoid degenerate coordinates
+                if (vertex[0].x == 0.0f) vertex[0].x = 0.0f;  // avoid degenerate coordinates
 
-                // add the transformed woop triangle to triWoopData
-                triWoopData.add((Vec4i *) woopTri, 3);
+                // add the transformed woop triangle to vertexData
+                vertexData.add((Vec4i *) vertex, 3);
                 normalData.add((Vec4i *) normal, 3);
 
                 // add tri index for current triangle to triIndexData
@@ -164,7 +164,7 @@ __host__ void BVHCompact::createCompact(const BVH &bvh, int nodeOffsetSizeDiv) {
 
             // Leaf node terminator to indicate end of leaf, stores hexadecimal value
             // 0x80000000 (= 2147483648 in decimal)
-            triWoopData.add(0x80000000);
+            vertexData.add(0x80000000);
             // leaf node terminator code indicates the last triangle of the leaf node
             normalData.add(0x80000000);
 
@@ -208,16 +208,16 @@ __host__ void BVHCompact::createCompact(const BVH &bvh, int nodeOffsetSizeDiv) {
     cudaMalloc(&nodes, nodesSize * sizeof(Vec4i));
     cudaMemcpy(nodes, cpuNodes, nodesSize * sizeof(Vec4i), cudaMemcpyHostToDevice);
 
-    woopTriSize = (U32) triWoopData.getSize();
-    auto cpuWoopTri = (Vec4i *) malloc(woopTriSize * sizeof(Vec4i));
-    for (int i = 0; i < triWoopData.getSize(); i++) {
-        cpuWoopTri[i].x = triWoopData.get(i).x;
-        cpuWoopTri[i].y = triWoopData.get(i).y;
-        cpuWoopTri[i].z = triWoopData.get(i).z;
-        cpuWoopTri[i].w = triWoopData.get(i).w;
+    verticesSize = (U32) vertexData.getSize();
+    auto cpuWoopTri = (Vec4i *) malloc(verticesSize * sizeof(Vec4i));
+    for (int i = 0; i < vertexData.getSize(); i++) {
+        cpuWoopTri[i].x = vertexData.get(i).x;
+        cpuWoopTri[i].y = vertexData.get(i).y;
+        cpuWoopTri[i].z = vertexData.get(i).z;
+        cpuWoopTri[i].w = vertexData.get(i).w;
     }
-    cudaMalloc(&woopTri, woopTriSize * sizeof(Vec4i));
-    cudaMemcpy(woopTri, cpuWoopTri, woopTriSize * sizeof(Vec4i), cudaMemcpyHostToDevice);
+    cudaMalloc(&vertices, verticesSize * sizeof(Vec4i));
+    cudaMemcpy(vertices, cpuWoopTri, verticesSize * sizeof(Vec4i), cudaMemcpyHostToDevice);
 
     normalsSize = (U32) normalData.getSize();
     auto cpuNormals = (Vec4i *) malloc(normalsSize * sizeof(Vec4i));
@@ -305,10 +305,10 @@ __host__ void BVHCompact::createTexture() {
 
     cudaCreateTextureObject(&nodesTexture, &resDesc, &texDesc, nullptr);
 
-    resDesc.res.linear.devPtr = woopTri;
-    resDesc.res.linear.sizeInBytes = woopTriSize * sizeof(float4);
+    resDesc.res.linear.devPtr = vertices;
+    resDesc.res.linear.sizeInBytes = verticesSize * sizeof(float4);
 
-    cudaCreateTextureObject(&woopTriTexture, &resDesc, &texDesc, nullptr);
+    cudaCreateTextureObject(&verticesTexture, &resDesc, &texDesc, nullptr);
 
     resDesc.res.linear.devPtr = normals;
     resDesc.res.linear.sizeInBytes = normalsSize * sizeof(float4);
@@ -341,7 +341,7 @@ __host__ void BVHCompact::save(const std::string &fileName) {
         throw std::runtime_error("Error writing BVH cache file!\n");
     if (1 != fwrite(&leafNodeCount, sizeof(unsigned), 1, bvhFile))
         throw std::runtime_error("Error writing BVH cache file!\n");
-    if (1 != fwrite(&woopTriSize, sizeof(unsigned), 1, bvhFile))
+    if (1 != fwrite(&verticesSize, sizeof(unsigned), 1, bvhFile))
         throw std::runtime_error("Error writing BVH cache file!\n");
     if (1 != fwrite(&normalsSize, sizeof(unsigned), 1, bvhFile))
         throw std::runtime_error("Error writing BVH cache file!\n");
@@ -359,9 +359,9 @@ __host__ void BVHCompact::save(const std::string &fileName) {
     if (nodesSize != fwrite(cpuNodes, sizeof(Vec4i), nodesSize, bvhFile))
         std::runtime_error("Error writing BVH cache file!\n");
 
-    auto cpuWoopTri = (Vec4i *) malloc(this->woopTriSize * sizeof(Vec4i));
-    cudaMemcpy(cpuWoopTri, this->woopTri, this->woopTriSize * sizeof(Vec4i), cudaMemcpyDeviceToHost);
-    if (woopTriSize != fwrite(cpuWoopTri, sizeof(Vec4i), woopTriSize, bvhFile))
+    auto cpuVertices = (Vec4i *) malloc(this->verticesSize * sizeof(Vec4i));
+    cudaMemcpy(cpuVertices, this->vertices, this->verticesSize * sizeof(Vec4i), cudaMemcpyDeviceToHost);
+    if (verticesSize != fwrite(cpuVertices, sizeof(Vec4i), verticesSize, bvhFile))
         std::runtime_error("Error writing BVH cache file!\n");
 
     auto cpuNormals = (Vec4i *) malloc(this->normalsSize * sizeof(Vec4i));
@@ -382,7 +382,7 @@ __host__ void BVHCompact::save(const std::string &fileName) {
 
 
     free(cpuNodes);
-    free(cpuWoopTri);
+    free(cpuVertices);
     free(cpuNormals);
     free(cpuTriIndices);
 }

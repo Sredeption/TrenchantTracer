@@ -28,19 +28,19 @@ private:
 public:
 
     float4 *nodes; // device memory
-    float4 *woopTri; // device memory
+    float4 *vertices; // device memory
     float4 *normals; // device memory
     int1 *triIndices; // device memory
     int1 *matIndices; // device memory
 
     cudaTextureObject_t nodesTexture;
-    cudaTextureObject_t woopTriTexture;
+    cudaTextureObject_t verticesTexture;
     cudaTextureObject_t normalsTexture;
     cudaTextureObject_t triIndicesTexture;
     cudaTextureObject_t matIndicesTexture;
 
     U32 nodesSize;
-    U32 woopTriSize;
+    U32 verticesSize;
     U32 normalsSize;
     U32 triIndicesSize;
     U32 matIndicesSize;

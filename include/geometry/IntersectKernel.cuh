@@ -217,7 +217,7 @@ __device__ __inline__ Hit intersect(const Ray &ray, const BVHCompact *bvhCompact
 
                 // Read first 16 bytes of the triangle.
                 // fetch first precomputed triangle edge
-                float4 v00 = tex1Dfetch<float4>(bvhCompact->woopTriTexture, triAddr);
+                float4 v00 = tex1Dfetch<float4>(bvhCompact->verticesTexture, triAddr);
 
                 // End marker 0x80000000 (= negative zero) => all triangles in leaf processed. --> terminate
                 if (__float_as_int(v00.x) == 0x80000000) break;
@@ -233,16 +233,17 @@ __device__ __inline__ Hit intersect(const Ray &ray, const BVHCompact *bvhCompact
                     // Compute and check barycentric u.
 
                     // fetch second precomputed triangle edge
-                    float4 v11 = tex1Dfetch<float4>(bvhCompact->woopTriTexture, triAddr + 1);
-                    float Ox = v11.w + ray.origin.x * v11.x + ray.origin.y * v11.y + ray.origin.z * v11.z;  // Origin.x
-                    float Dx =
-                            ray.direction.x * v11.x + ray.direction.y * v11.y + ray.direction.z * v11.z;  // Direction.x
+                    float4 v11 = tex1Dfetch<float4>(bvhCompact->verticesTexture, triAddr + 1);
+                    // Origin.x
+                    float Ox = v11.w + ray.origin.x * v11.x + ray.origin.y * v11.y + ray.origin.z * v11.z;
+                    // Direction.x
+                    float Dx = ray.direction.x * v11.x + ray.direction.y * v11.y + ray.direction.z * v11.z;
                     float u = Ox + t * Dx; // parametric equation of a ray (intersection point)
 
                     if (u >= 0.0f && u <= 1.0f) {
                         // Compute and check barycentric v.
                         // fetch third precomputed triangle edge
-                        float4 v22 = tex1Dfetch<float4>(bvhCompact->woopTriTexture, triAddr + 2);
+                        float4 v22 = tex1Dfetch<float4>(bvhCompact->verticesTexture, triAddr + 2);
                         float Oy = v22.w + ray.origin.x * v22.x + ray.origin.y * v22.y + ray.origin.z * v22.z;
                         float Dy = ray.direction.x * v22.x + ray.direction.y * v22.y + ray.direction.z * v22.z;
                         float v = Oy + t * Dy;

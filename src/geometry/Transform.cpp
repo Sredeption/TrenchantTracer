@@ -28,7 +28,6 @@ Transform::Transform(const nlohmann::json &geometryJson) {
     }
     if (transformJson.find(ORIENTATION) != transformJson.end()) {
         Vec3f orientation = (jsonToVec(transformJson[ORIENTATION]) / 180.0f) * M_PI;
-        std::cout << orientation << std::endl;
         matrix = matrix * PoseMath::orientation(orientation);
     }
 }
