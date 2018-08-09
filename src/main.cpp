@@ -27,6 +27,7 @@ void display() {
 
 int main(int argc, char **argv) {
     // set up config
+//    std::string configFileName = "config/dev.json";
     std::string configFileName = "config/maserati.json";
 //    std::string configFileName = "config/cornell_dragon.json";
 //    std::string configFileName = "config/cornell_car.json";

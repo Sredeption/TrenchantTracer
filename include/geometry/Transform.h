@@ -6,6 +6,10 @@
 
 #include <math/LinearMath.h>
 
+typedef enum TransformType {
+    VERTEX, NORMAL
+};
+
 class Transform {
 private:
     Mat4f matrix;
@@ -16,7 +20,7 @@ public:
 
     explicit Transform(const nlohmann::json &geometryJson);
 
-    Vec3f apply(Vec3f &vertex) const;
+    Vec3f apply(Vec3f &vec, TransformType type) const;
 
     static Vec3f jsonToVec(const nlohmann::json &j);
 };

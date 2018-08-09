@@ -18,7 +18,6 @@ Object *OBJLoader::load(std::string fileName) {
         key = "";
         std::stringstream lineStream(line);
         lineStream >> key >> std::ws;
-
         if (key == "g") { // group
             std::string name;
             lineStream >> name;
@@ -59,9 +58,10 @@ Object *OBJLoader::load(std::string fileName) {
                 lineStream >> x >> std::ws;
             }
         } else if (key == "vn") { // normal
-            float x;
+            float x, y, z;
             while (!lineStream.eof()) {
-                lineStream >> x >> std::ws;
+                lineStream >> x >> std::ws >> y >> std::ws >> z >> std::ws;
+                object->addNormal(Vec3f(x, y, z));
             }
         } else if (key == "f") { // face
             int v = 1, t = 1, n = 1;
@@ -88,7 +88,7 @@ Object *OBJLoader::load(std::string fileName) {
                 normals.push_back(n - 1);
             }
 
-            auto numTriangles = static_cast<int>(vertices.size() - 2); // 1 triangle if 3 vertices, 2 if 4 etc
+            auto numTriangles = (int) (vertices.size() - 2); // 1 triangle if 3 vertices, 2 if 4 etc
             for (int i = 0; i < numTriangles; i++) {
                 // first vertex remains the same for all triangles in a triangle fan
                 mesh->addVertex(Vec3i(vertices[0], vertices[i + 1], vertices[i + 2]));

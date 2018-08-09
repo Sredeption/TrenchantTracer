@@ -6,14 +6,17 @@ Scene::~Scene() = default;
 
 void Scene::add(Object *object) {
     int vertexBase = this->vertices.getSize();
-    Vertices *vertices = object->getVertices();
-    this->vertices.add(vertices->getVertex());
+    this->vertices.add(object->getVertices());
+    int normalBase = this->normals.getSize();
+    this->normals.add(object->getNormals());
     add(object->getMaterialPool());
 
     for (Group *group:object->getGroups()) {
-        Array<Vec3i> vertexIndices = static_cast<Mesh *>(group->getGeometry())->getVertexIndices();
+        Array<Vec3i> vertexIndices = ((Mesh *) group->getGeometry())->getVertexIndices();
+        Array<Vec3i> normalIndices = ((Mesh *) group->getGeometry())->getNormalIndices();
         for (int i = 0; i < vertexIndices.getSize(); i++) {
             this->vertexIndices.add(vertexIndices[i] + vertexBase);
+            this->normalIndices.add(normalIndices[i] + normalBase);
             this->materialIndices.add(group->getMaterial()->index);
         }
     }
@@ -102,5 +105,35 @@ const Group **Scene::getGeometryPtr(int idx) {
 
 const Group *&Scene::getGeometry(int idx) {
     return *getGeometryPtr(idx);
+}
+
+int Scene::getNormalIndexNum() const {
+    return normalIndices.getSize();
+}
+
+const Vec3i *Scene::getNormalIndexPtr(int idx) {
+    if (0 <= idx && idx <= normalIndices.getSize())
+        return normalIndices.getPtr() + idx;
+    else
+        throw std::runtime_error("normalIndices out of bound");
+}
+
+const Vec3i &Scene::getNormalIndex(int idx) {
+    return *getNormalIndexPtr(idx);
+}
+
+int Scene::getNormalNum() const {
+    return normals.getSize();
+}
+
+const Vec3f *Scene::getNormalPtr(int idx) {
+    if (0 <= idx && idx <= normals.getSize())
+        return normals.getPtr() + idx;
+    else
+        throw std::runtime_error("normals out of bound");
+}
+
+const Vec3f &Scene::getNormal(int idx) {
+    return *getNormalPtr(idx);
 }
 

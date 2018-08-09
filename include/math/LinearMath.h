@@ -85,6 +85,8 @@ struct Vec3f {
 
     __host__ __device__ Vec3f(const Vec3f &v) : x(v.x), y(v.y), z(v.z) {}
 
+    __host__ __device__ Vec3f(const float4 &v) : x(v.x), y(v.y), z(v.z) {}
+
     inline __host__ __device__ float length() { return sqrtf(x * x + y * y + z * z); }
 
     // sometimes we dont need the sqrt, we are just comparing one length with another
@@ -196,6 +198,8 @@ struct Vec4f {
 
     __host__ __device__ Vec4f(const Vec3f &v, const float a) : x(v.x), y(v.y), z(v.z), w(a) {}
 
+    __host__ __device__ Vec4f(const float4 &v) : x(v.x), y(v.y), z(v.z), w(v.w) {}
+
     inline __host__ __device__ Vec4f &operator+=(const Vec4f &v) {
         x += v.x;
         y += v.y;
@@ -210,6 +214,14 @@ struct Vec4f {
         z *= v.z;
         w *= v.w;
         return *this;
+    }
+
+    inline __host__ __device__ Vec4f operator*(const float &a) {
+        return Vec4f(x * a, y * a, z * a, w * a);
+    }
+
+    inline __host__ __device__ Vec4f operator+(const Vec4f &v) {
+        return Vec4f(x * v.x, y * v.y, z * v.z, w * v.w);
     }
 
     inline __host__ __device__ float dot(const Vec4f &v) const {

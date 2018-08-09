@@ -253,9 +253,11 @@ __device__ __inline__ Hit intersect(const Ray &ray, const BVHCompact *bvhCompact
                             hit.distance = t;
                             hit.index = triAddr; // store triangle index for shading
 
-                            // compute normal vector by taking the cross product of two edge vectors
-                            // because of Woop transformation, only one set of vectors works
-                            hit.normal = cross(Vec3f(v11.x, v11.y, v11.z), Vec3f(v22.x, v22.y, v22.z));
+                            Vec3f n0 = Vec3f(tex1Dfetch<float4>(bvhCompact->normalsTexture, triAddr));
+                            Vec3f n1 = Vec3f(tex1Dfetch<float4>(bvhCompact->normalsTexture, triAddr + 1));
+                            Vec3f n2 = Vec3f(tex1Dfetch<float4>(bvhCompact->normalsTexture, triAddr + 2));
+                            // Interpolate to find normal
+                            hit.normal = n0 * (1 - u - v) + n1 * u + n2 * v;
 
                             if (!needClosestHit) {
                                 // shadow rays only require "any" hit with scene geometry, not the closest one

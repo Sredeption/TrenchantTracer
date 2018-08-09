@@ -33,7 +33,16 @@ Transform::Transform(const nlohmann::json &geometryJson) {
     }
 }
 
-Vec3f Transform::apply(Vec3f &vertex) const {
-    Vec4f v = matrix * Vec4f(vertex, 1);
+Vec3f Transform::apply(Vec3f &vec, TransformType type) const {
+    int a;
+    switch (type) {
+        case VERTEX:
+            a = 1;
+            break;
+        case NORMAL:
+            a = 0;
+            break;
+    }
+    Vec4f v = matrix * Vec4f(vec, a);
     return Vec3f(v.x, v.y, v.z);
 }

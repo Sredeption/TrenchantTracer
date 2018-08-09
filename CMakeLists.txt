@@ -55,8 +55,6 @@ add_executable(TrenchantTracer
         include/material/MaterialPool.h
         src/core/Group.cpp
         include/core/Group.h
-        src/geometry/Vertices.cpp
-        include/geometry/Vertices.h
         src/core/Scene.cpp
         include/core/Scene.h
         include/util/Array.h

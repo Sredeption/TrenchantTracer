@@ -9,7 +9,9 @@
 class Scene {
 private:
     Array<Vec3i> vertexIndices;
+    Array<Vec3i> normalIndices;
     Array<Vec3f> vertices;
+    Array<Vec3f> normals;
     Array<U32> materialIndices;
     Array<Material *> materials;
     Array<Group *> geometries;
@@ -52,6 +54,18 @@ public:
     const Group **getGeometryPtr(int idx = 0);
 
     const Group *&getGeometry(int idx);
+
+    int getNormalIndexNum() const;
+
+    const Vec3i *getNormalIndexPtr(int idx = 0);
+
+    const Vec3i &getNormalIndex(int idx);
+
+    int getNormalNum() const;
+
+    const Vec3f *getNormalPtr(int idx = 0);
+
+    const Vec3f &getNormal(int idx);
 
 };
 

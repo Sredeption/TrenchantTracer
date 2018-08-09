@@ -1,19 +1,24 @@
 #include <core/Object.h>
 
-Object::Object() {
-    this->vertices = new Vertices();
-}
+Object::Object() = default;
 
 Object::~Object() {
-    delete this->vertices;
     delete this->pool;
     for (Group *group: this->groups) {
         delete group;
     }
 }
 
-void Object::addVertex(Vec3f vertex) {
-    this->vertices->add(vertex);
+void Object::addVertex(const Vec3f &vertex) {
+    vertices.add(vertex);
+}
+
+void Object::addNormal(const Vec3f &normal) {
+    normals.add(normal);
+}
+
+const Array<Vec3f> &Object::getVertices() {
+    return vertices;
 }
 
 void Object::addGroup(Group *group) {
@@ -28,10 +33,6 @@ MaterialPool *Object::getMaterialPool() {
     return this->pool;
 }
 
-Vertices *Object::getVertices() {
-    return this->vertices;
-}
-
 std::vector<Group *> Object::getGroups() {
     return this->groups;
 }
@@ -41,7 +42,6 @@ void Object::postProcess() {
     Vec3f minp(FLT_MAX, FLT_MAX, FLT_MAX);
     Vec3f maxp(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
-    Array<Vec3f> &vertices = this->vertices->getVertex();
     // calculate min and max bounds of object
     // loop over all triangles in all groups, grow minp and maxp
 
@@ -83,5 +83,13 @@ void Object::postProcess() {
 }
 
 void Object::apply(const Transform &transform) {
-    vertices->apply(transform);
+    for (int i = 0; i < vertices.getSize(); i++) {
+        vertices[i] = transform.apply(vertices[i], VERTEX);
+        normals[i] = transform.apply(normals[i], NORMAL);
+        normals[i].normalize();
+    }
+}
+
+const Array<Vec3f> &Object::getNormals() {
+    return normals;
 }
