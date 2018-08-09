@@ -90,7 +90,7 @@ __host__ void BVHCompact::createCompact(const BVH &bvh, int nodeOffsetSizeDiv) {
     // construct and initialize data arrays which will be copied to CudaBVH buffers (last part of this function).
     Array<Vec4i> nodeData(nullptr, 4);
     Array<Vec4i> vertexData;
-    Array<Vec4i> normalData; // array for regular (non-woop) triangles
+    Array<Vec4i> normalData;
     Array<S32> triIndexData;
     Array<U32> matIndexData;
 
@@ -136,17 +136,13 @@ __host__ void BVHCompact::createCompact(const BVH &bvh, int nodeOffsetSizeDiv) {
 
             // for each triangle in leaf, range of triangle index j from m_lo to m_hi
             for (int j = leaf->lo; j < leaf->hi; j++) {
-                // transform the triangle's vertices to Woop triangle (simple transform to right angled
-                // triangle, see paper by Sven Woop)
                 Vec4f vertex[4], normal[4];
-                // transform the triangle's vertices to Woop triangle
-                // (simple transform to right angled triangle, see paper by Sven Woop)
-                woopifyTri(bvh, j, vertex, normal);  // j is de triangle index in triIndex array
+                getTriangle(bvh, j, vertex, normal);  // j is de triangle index in triIndex array
                 this->triCount++;
 
                 if (vertex[0].x == 0.0f) vertex[0].x = 0.0f;  // avoid degenerate coordinates
 
-                // add the transformed woop triangle to vertexData
+                // add the vertex and normal
                 vertexData.add((Vec4i *) vertex, 3);
                 normalData.add((Vec4i *) normal, 3);
 
@@ -209,15 +205,15 @@ __host__ void BVHCompact::createCompact(const BVH &bvh, int nodeOffsetSizeDiv) {
     cudaMemcpy(nodes, cpuNodes, nodesSize * sizeof(Vec4i), cudaMemcpyHostToDevice);
 
     verticesSize = (U32) vertexData.getSize();
-    auto cpuWoopTri = (Vec4i *) malloc(verticesSize * sizeof(Vec4i));
+    auto cpuVertices = (Vec4i *) malloc(verticesSize * sizeof(Vec4i));
     for (int i = 0; i < vertexData.getSize(); i++) {
-        cpuWoopTri[i].x = vertexData.get(i).x;
-        cpuWoopTri[i].y = vertexData.get(i).y;
-        cpuWoopTri[i].z = vertexData.get(i).z;
-        cpuWoopTri[i].w = vertexData.get(i).w;
+        cpuVertices[i].x = vertexData.get(i).x;
+        cpuVertices[i].y = vertexData.get(i).y;
+        cpuVertices[i].z = vertexData.get(i).z;
+        cpuVertices[i].w = vertexData.get(i).w;
     }
     cudaMalloc(&vertices, verticesSize * sizeof(Vec4i));
-    cudaMemcpy(vertices, cpuWoopTri, verticesSize * sizeof(Vec4i), cudaMemcpyHostToDevice);
+    cudaMemcpy(vertices, cpuVertices, verticesSize * sizeof(Vec4i), cudaMemcpyHostToDevice);
 
     normalsSize = (U32) normalData.getSize();
     auto cpuNormals = (Vec4i *) malloc(normalsSize * sizeof(Vec4i));
@@ -247,13 +243,13 @@ __host__ void BVHCompact::createCompact(const BVH &bvh, int nodeOffsetSizeDiv) {
     cudaMemcpy(matIndices, cpuMatIndices, matIndicesSize * sizeof(U32), cudaMemcpyHostToDevice);
 
     free(cpuNodes);
-    free(cpuWoopTri);
+    free(cpuVertices);
     free(cpuNormals);
     free(cpuTriIndices);
     free(cpuMatIndices);
 }
 
-__host__ void BVHCompact::woopifyTri(const BVH &bvh, int triIdx, Vec4f *woopTri, Vec4f *normal) {
+__host__ void BVHCompact::getTriangle(const BVH &bvh, int triIdx, Vec4f *vertex, Vec4f *normal) {
     // fetch the 3 vertex indices of this triangle
     int index = bvh.getTriIndices()[triIdx];
     const Vec3i &vertexIndex = bvh.getScene()->getTriangle(index);
@@ -271,6 +267,8 @@ __host__ void BVHCompact::woopifyTri(const BVH &bvh, int triIdx, Vec4f *woopTri,
     normal[1] = Vec4f(n1, 0.0f);
     normal[2] = Vec4f(n2, 0.0f);
 
+    // transform the triangle's vertices to Woop triangle
+    // (simple transform to right angled triangle, see paper by Sven Woop)
     Mat4f mtx;
     // compute edges and transform them with a matrix
     mtx.setCol(0, Vec4f(v0 - v2, 0.0f)); // sets matrix column 0 equal to a Vec4f(Vec3f, 0.0f )
@@ -280,10 +278,10 @@ __host__ void BVHCompact::woopifyTri(const BVH &bvh, int triIdx, Vec4f *woopTri,
     mtx = invert(mtx);
 
     // m_woop[3] stores 3 transformed triangle edges
-    woopTri[0] = Vec4f(mtx(2, 0), mtx(2, 1), mtx(2, 2), -mtx(2, 3));
+    vertex[0] = Vec4f(mtx(2, 0), mtx(2, 1), mtx(2, 2), -mtx(2, 3));
     // elements of 3rd row of inverted matrix
-    woopTri[1] = mtx.getRow(0);
-    woopTri[2] = mtx.getRow(1);
+    vertex[1] = mtx.getRow(0);
+    vertex[2] = mtx.getRow(1);
 }
 
 __host__ void BVHCompact::createTexture() {

@@ -23,7 +23,7 @@ private:
 
     __host__ void createTexture();
 
-    __host__ void woopifyTri(const BVH &bvh, int triIdx, Vec4f *woopTri, Vec4f *normal);
+    __host__ void getTriangle(const BVH &bvh, int triIdx, Vec4f *vertex, Vec4f *normal);
 
 public:
 
