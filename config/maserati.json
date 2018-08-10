@@ -11,9 +11,9 @@
     "position": [0, 0, 3],
     "yaw": 0,
     "pitch": 0.1,
-    "radius": 4,
-    "focal": 1,
-    "aperture": 0.0001
+    "radius": 3,
+    "focal": 5,
+    "aperture": 0.03
   },
   "objects": [
     {
@@ -21,7 +21,7 @@
       "p0": [-30, -1, -30],
       "p1": [-30, -1, 30],
       "p2": [30, -1, -30],
-      "material": "diff1",
+      "material": "coat_base",
       "transform": {
       }
     },

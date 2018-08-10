@@ -3,7 +3,7 @@
   "samples": 1,
   "material-file": "data/master.mtl",
   "hdr-file-name": "data/Topanga_Forest_B_3k.hdr",
-  "bvh-reload": false,
+  "bvh-reload": true,
   "material-reload": true,
   "camera": {
     "width": 1280,

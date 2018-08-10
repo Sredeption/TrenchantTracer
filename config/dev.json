@@ -8,7 +8,7 @@
   "camera": {
     "width": 1280,
     "height": 720,
-    "position": [0, 0, 3],
+    "position": [0, 0, 0],
     "yaw": -1.4,
     "pitch": 0.1,
     "radius": 4,
@@ -17,30 +17,12 @@
   },
   "objects": [
     {
-      "type": "Plane",
-      "p0": [-30, -1, -30],
-      "p1": [-30, -1, 30],
-      "p2": [30, -1, -30],
-      "material": "diff1",
-      "transform": {
-      }
-    },
-    {
       "type": "Mesh",
-      "file": "data/cube.obj",
+      "file": "data/bridge/bridge2.obj",
       "transform": {
-        "scale": [1.5, 1.5, 1.5],
+        "scale": [1, 1, 1],
         "orientation": [0, 150, 0],
-        "translate": [4, 0, -4]
-      }
-    },
-    {
-      "type": "Mesh",
-      "file": "data/cube.obj",
-      "transform": {
-        "scale": [1.5, 1.5, 1.5],
-        "orientation": [0, 150, 0],
-        "translate": [4, 0, 4]
+        "translate": [0, 0, 0]
       }
     }
   ]
