@@ -87,7 +87,9 @@ struct Vec3f {
 
     __host__ __device__ Vec3f(const float4 &v) : x(v.x), y(v.y), z(v.z) {}
 
-    inline __host__ __device__ float length() { return sqrtf(x * x + y * y + z * z); }
+    inline __host__ __device__ float length() const {
+        return sqrtf(x * x + y * y + z * z);
+    }
 
     // sometimes we dont need the sqrt, we are just comparing one length with another
     inline __host__ __device__ float lengthsq() { return x * x + y * y + z * z; }
@@ -154,6 +156,11 @@ struct Vec3f {
     inline __host__ __device__ bool operator!=(const Vec3f &v) { return x != v.x || y != v.y || z != v.z; }
 
     inline __host__ __device__ bool operator==(const Vec3f &v) { return x == v.x && y == v.y && z == v.z; }
+
+
+    friend inline __host__ __device__ Vec3f operator-(const Vec3f &v) {
+        return Vec3f(-v.x, -v.y, -v.z);
+    }
 
     friend std::ostream &operator<<(std::ostream &os, const Vec3f &v) {
         os << v.x << "," << v.y << "," << v.z;
